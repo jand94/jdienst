@@ -1,0 +1,142 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+
+jobs:
+  policy:
+    name: Policy & Conventions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate agent manifest
+        run: python scripts/validate_agents_manifest.py
+
+      - name: Validate backend structure and naming conventions
+        run: bash scripts/validate_backend_conventions.sh
+
+  backend_quality:
+    name: Backend Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs:
+      - policy
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff pytest
+
+      - name: Run Ruff
+        run: ruff check .
+
+      - name: Check for missing migrations
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Run backend tests
+        run: pytest
+
+  api_schema:
+    name: API Schema Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs:
+      - backend_quality
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Validate OpenAPI schema
+        run: python manage.py spectacular --validate --fail-on-warn
+
+  frontend_quality:
+    name: Frontend Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs:
+      - policy
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Run frontend tests (if present)
+        run: npm run test --if-present
+
+      - name: Run production build
+        run: npm run build
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs:
+      - policy
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

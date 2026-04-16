@@ -1,0 +1,158 @@
+{
+  "version": "1.0.0",
+  "schemaVersion": 1,
+  "project": "jdienst",
+  "source": "docs/engineering/agents.md",
+  "handoverTemplate": "docs/engineering/agents/handover-template.md",
+  "agents": [
+    {
+      "id": "solution-architect",
+      "optional": false,
+      "promptFile": "docs/engineering/agents/solution-architect.prompt.md",
+      "requiredDocs": [
+        "CLAUDE.md",
+        "docs/engineering/backend.md",
+        "docs/engineering/api.md",
+        "docs/engineering/frontend.md",
+        "docs/engineering/security.md",
+        "docs/engineering/testing.md",
+        "docs/engineering/ci.md",
+        "docs/engineering/docker.md"
+      ]
+    },
+    {
+      "id": "backend-implementer",
+      "optional": false,
+      "promptFile": "docs/engineering/agents/backend-implementer.prompt.md",
+      "requiredDocs": [
+        "CLAUDE.md",
+        "docs/engineering/backend.md",
+        "docs/engineering/security.md",
+        "docs/engineering/testing.md"
+      ]
+    },
+    {
+      "id": "api-contract-guardian",
+      "optional": false,
+      "promptFile": "docs/engineering/agents/api-contract-guardian.prompt.md",
+      "requiredDocs": [
+        "CLAUDE.md",
+        "docs/engineering/api.md",
+        "docs/engineering/testing.md"
+      ]
+    },
+    {
+      "id": "frontend-implementer",
+      "optional": false,
+      "promptFile": "docs/engineering/agents/frontend-implementer.prompt.md",
+      "requiredDocs": [
+        "CLAUDE.md",
+        "docs/engineering/frontend.md",
+        "docs/engineering/security.md",
+        "docs/engineering/testing.md"
+      ]
+    },
+    {
+      "id": "security-reviewer",
+      "optional": false,
+      "promptFile": "docs/engineering/agents/security-reviewer.prompt.md",
+      "requiredDocs": [
+        "CLAUDE.md",
+        "docs/engineering/security.md",
+        "docs/engineering/llm.md"
+      ]
+    },
+    {
+      "id": "test-engineer",
+      "optional": false,
+      "promptFile": "docs/engineering/agents/test-engineer.prompt.md",
+      "requiredDocs": [
+        "CLAUDE.md",
+        "docs/engineering/testing.md",
+        "docs/engineering/api.md",
+        "docs/engineering/security.md"
+      ]
+    },
+    {
+      "id": "infra-compose-engineer",
+      "optional": false,
+      "promptFile": "docs/engineering/agents/infra-compose-engineer.prompt.md",
+      "requiredDocs": [
+        "CLAUDE.md",
+        "docs/engineering/docker.md",
+        "docs/engineering/ci.md",
+        "docs/engineering/makefile.md"
+      ]
+    },
+    {
+      "id": "code-reviewer",
+      "optional": false,
+      "promptFile": "docs/engineering/agents/code-reviewer.prompt.md",
+      "requiredDocs": [
+        "CLAUDE.md",
+        "docs/engineering/backend.md",
+        "docs/engineering/api.md",
+        "docs/engineering/frontend.md",
+        "docs/engineering/security.md",
+        "docs/engineering/testing.md",
+        "docs/engineering/ci.md",
+        "docs/engineering/docker.md",
+        "docs/engineering/llm.md"
+      ]
+    },
+    {
+      "id": "llm-integrator",
+      "optional": true,
+      "promptFile": "docs/engineering/agents/llm-integrator.prompt.md",
+      "requiredDocs": [
+        "CLAUDE.md",
+        "docs/engineering/llm.md",
+        "docs/engineering/security.md",
+        "docs/engineering/testing.md"
+      ]
+    },
+    {
+      "id": "ci-governor",
+      "optional": true,
+      "promptFile": "docs/engineering/agents/ci-governor.prompt.md",
+      "requiredDocs": [
+        "CLAUDE.md",
+        "docs/engineering/ci.md",
+        "docs/engineering/makefile.md"
+      ]
+    }
+  ],
+  "workflows": {
+    "standard": [
+      "solution-architect",
+      "backend-implementer|frontend-implementer",
+      "api-contract-guardian",
+      "test-engineer",
+      "security-reviewer",
+      "infra-compose-engineer",
+      "code-reviewer"
+    ],
+    "bugfix": [
+      "solution-architect",
+      "backend-implementer|frontend-implementer",
+      "test-engineer",
+      "security-reviewer",
+      "code-reviewer"
+    ],
+    "llm": [
+      "solution-architect",
+      "llm-integrator",
+      "backend-implementer",
+      "test-engineer",
+      "security-reviewer",
+      "code-reviewer"
+    ],
+    "ciInfra": [
+      "solution-architect",
+      "infra-compose-engineer",
+      "ci-governor",
+      "test-engineer",
+      "code-reviewer"
+    ]
+  }
+}
