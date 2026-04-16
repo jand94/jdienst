@@ -88,6 +88,7 @@ Vor Abschluss einer Frontend-Änderung:
 - Sicherheitsanforderungen: `security.md`
 - API-Vertrag und Schema: `api.md`
 - CI-Durchsetzung: `ci.md`
+- Responsive Standards: `frontend-responsiveness.md`
 
 ---
 
