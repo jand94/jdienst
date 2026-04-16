@@ -4,6 +4,14 @@ Ergänzt `CLAUDE.md`. Dieses Dokument beschreibt **wie** eine Wurzel-`Makefile` 
 
 ---
 
+## Operationalisierung im Repository (Ist/Soll)
+
+- Ist-Zustand: Eine Root-`Makefile` kann vorhanden sein oder fehlen.
+- Soll-Zustand: Wenn eine Root-`Makefile` existiert, ist sie die kanonische Befehls-Fassade für wiederkehrende Abläufe.
+- Ohne Root-`Makefile` gelten README und `docs/engineering/*` als kanonische Befehlsquelle.
+
+---
+
 ## Zweck
 
 - **Eine** stabile Einstiegsschicht für wiederkehrende Aufgaben: Compose, Tests, Lint, Migrationen, Hilfe.  

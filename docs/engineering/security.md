@@ -4,6 +4,13 @@ Ergänzt `CLAUDE.md`. LLM-spezifische Grenzen zusätzlich in `llm.md`.
 
 ---
 
+## Geltungsbereich
+
+- Dieses Dokument definiert die projektweiten Sicherheitsnormen für Backend, Frontend, API, CI und Integrationen.
+- Detaillierte LLM-Implementierungsvorgaben liegen in `llm.md`.
+
+---
+
 ## Grundsatz
 
 - Security ist ein Default-Verhalten, kein optionaler Schritt.
@@ -149,6 +156,7 @@ Typische Risiken aktiv vermeiden:
 - LLM-Ein- und Ausgaben sind sicherheitsrelevant.
 - LLM darf keine sicherheitskritischen Entscheidungen allein treffen.
 - Prompt Injection berücksichtigen und mitigieren.
+- Technische Umsetzung (Service-Kapselung, Fallbacks, Teststrategie) folgt `llm.md`.
 
 ---
 
@@ -168,3 +176,24 @@ Typische Risiken aktiv vermeiden:
 - Offene CORS-Konfiguration
 - Stacktraces im Response
 - Vertrauen auf LLM-Output
+
+---
+
+## Checkliste
+
+Vor Abschluss sicherheitsrelevanter Änderungen:
+
+- Input/Output-Validierung für betroffene Flows ist nachweisbar
+- Permissions sind explizit und auf passender Ebene getestet
+- Secrets und sensible Daten werden nicht offengelegt
+- Fehlerausgaben sind sicher und kontrolliert
+- relevante Abuse-, CORS- und Session-Risiken sind bewertet
+
+---
+
+## Querverweise
+
+- LLM-Implementierung: `llm.md`
+- API-Vertrag und Schemaregeln: `api.md`
+- Testanforderungen: `testing.md`
+- CI-Durchsetzung: `ci.md`

@@ -43,7 +43,14 @@ Ergänzt `CLAUDE.md`. Docker Compose ist der Standard-Einstieg für den vollstä
 - Start-Abhängigkeiten sind explizit zu modellieren.
 - Service-Verfügbarkeit ist nach Möglichkeit über Healthchecks abzusichern, nicht über fragile Sleep-Workarounds.
 - Entrypoints und Startskripte dürfen keine versteckte Business-Logik enthalten.
-- Datenbankmigrationen dürfen nicht unbeabsichtigt oder unkontrolliert ausgeführt werden; projektspezifische Migrationsregeln sind einzuhalten.
+- Datenbankmigrationen dürfen nicht unbeabsichtigt oder unkontrolliert ausgeführt werden.
+
+### Migrationsregeln (lokaler Standard)
+
+- Migrationen werden bewusst und explizit ausgelöst (z. B. per dokumentiertem Befehl oder `make migrate`, falls vorhanden).
+- Kein automatisches "always-on migrate" im Container-Start ohne explizite Team-Entscheidung.
+- Bei neuen Migrationsabläufen müssen README oder die kanonische Befehlsdoku im selben Change aktualisiert werden.
+- CI- und Testanforderungen für Migrationen folgen `ci.md` und `testing.md`.
 
 ---
 

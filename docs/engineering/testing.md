@@ -4,6 +4,13 @@ Ergänzt `CLAUDE.md`.
 
 ---
 
+## Geltungsbereich
+
+- Dieses Dokument definiert Mindestanforderungen für Tests bei Backend-, Frontend-, API- und Integrationsänderungen.
+- Es ergänzt `CLAUDE.md` und wird in CI gemäß `ci.md` technisch abgesichert.
+
+---
+
 ## Grundsatz
 
 - Tests sind verpflichtender Bestandteil jeder nicht-trivialen Änderung.
@@ -24,6 +31,22 @@ Tests müssen erstellt oder angepasst werden bei:
 - Änderungen an Validierung
 - Änderungen an LLM-Integration
 - Bugfixes (inkl. Reproduktions-Test)
+
+---
+
+## Test-Matrix (Änderungstyp -> Pflichttestarten)
+
+| Änderungstyp | Unit | Integration | E2E |
+|---|---|---|---|
+| Neue Geschäftslogik im Service | Pflicht | Pflicht bei DB/API-Beteiligung | Optional, falls User-Flow kritisch |
+| Änderung bestehender Geschäftslogik | Pflicht | Pflicht bei Schnittstellen-/DB-Effekt | Optional nach Risiko |
+| Neuer API-Endpunkt | Pflicht für Serializer/Service | Pflicht | Optional, wenn kritischer End-to-End-Flow |
+| Änderung Request-/Response-Struktur | Pflicht | Pflicht | Optional |
+| Permission-/Security-Änderung | Pflicht | Pflicht | Empfohlen bei kritischen Journeys |
+| Validierungsänderung | Pflicht | Pflicht | Optional |
+| LLM-Integration | Pflicht (Parsing/Guards) | Pflicht (Service-Flow mit Mock/Fake) | Optional, gezielt |
+| Bugfix | Pflicht (Reproduktion + Guard) | Pflicht, wenn Fehler integrationsnah war | Optional |
+| Komplexes UI-Verhalten | Pflicht (Komponenten-/Hook-Logik) | Optional | Pflicht bei kritischem Nutzerfluss |
 
 ---
 
@@ -149,6 +172,27 @@ Priorisiert:
 
 - Refactoring darf bestehende Tests nicht brechen, außer Verhalten ändert sich bewusst.
 - Bestehende Tests dürfen verbessert werden, wenn sie unklar oder unzuverlässig sind.
+
+---
+
+## Checkliste
+
+Vor Abschluss einer Änderung:
+
+- Passende Testarten sind mit der Matrix abgeglichen
+- neue oder geänderte Logik ist durch mindestens einen aussagekräftigen Test abgesichert
+- Fehler-, Rand- und Permission-Fälle sind berücksichtigt
+- API-Änderungen sind gegen Schema und Verhalten getestet
+- externe Abhängigkeiten sind kontrolliert gemockt oder gezielt integriert
+
+---
+
+## Querverweise
+
+- API-Vertrag: `api.md`
+- Sicherheitsanforderungen: `security.md`
+- LLM-Integrationen: `llm.md`
+- CI-Durchsetzung: `ci.md`
 
 ---
 

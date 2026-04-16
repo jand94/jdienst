@@ -4,6 +4,14 @@ Ergänzt `CLAUDE.md`. CI ist Teil des Qualitätsvertrags: Was im Default-Branch 
 
 ---
 
+## Geltungsbereich
+
+- Dieses Dokument regelt die technische Durchsetzung von Qualitätsregeln über CI.
+- Die kanonische Definition von "fertig" steht in `CLAUDE.md` unter "Definition of Done".
+- Dieses Dokument konkretisiert, wie diese Kriterien in Pipeline-Jobs überprüfbar gemacht werden.
+
+---
+
 ## Grundsatz
 
 - CI ist der verbindliche Qualitäts- und Durchsetzungsmechanismus für projektweite Engineering-Regeln.
@@ -25,6 +33,14 @@ Ergänzt `CLAUDE.md`. CI ist Teil des Qualitätsvertrags: Was im Default-Branch 
 
 ---
 
+## Operationalisierung im Repository (Ist/Soll)
+
+- Ist-Zustand kann je nach Projektphase variieren (z. B. noch keine Workflows oder keine Root-`Makefile`).
+- Soll-Zustand bleibt: relevante Qualitätsprüfungen sind versioniert, reproduzierbar und für Team sowie Agenten sichtbar.
+- Wenn Artefakte noch fehlen, gilt dieses Dokument als Einführungs- und Migrationsleitlinie; bei Einführung sind die Regeln in ausführbare Pipeline-Schritte zu überführen.
+
+---
+
 ## Ziele der Pipeline
 
 - Früh scheitern: schnelle Checks vor teuren Jobs ausführen.
@@ -35,16 +51,17 @@ Ergänzt `CLAUDE.md`. CI ist Teil des Qualitätsvertrags: Was im Default-Branch 
 
 ---
 
-## Definition of Done
+## DoD-Durchsetzung in CI
 
-Ein PR oder Merge gilt nur dann als abgeschlossen, wenn:
+Die kanonische Definition of Done steht in `CLAUDE.md`.
+CI setzt diese Kriterien technisch durch. Für einen abgeschlossenen PR/Merge gilt in der CI-Perspektive:
 
-- alle verpflichtenden CI-Jobs erfolgreich sind
-- Linting- und statische Prüfungen erfolgreich sind
-- relevante Tests erfolgreich sind
-- Typprüfungen erfolgreich sind, falls im Projekt aktiviert
-- Sicherheitsrelevante Checks erfolgreich sind, falls im Projekt aktiviert
-- keine projektweiten Non-negotiables aus `CLAUDE.md` oder den Engineering-Dokumenten verletzt werden
+- alle verpflichtenden CI-Jobs sind erfolgreich
+- Linting- und statische Prüfungen sind erfolgreich
+- relevante Tests sind erfolgreich
+- Typprüfungen sind erfolgreich, falls im Projekt aktiviert
+- sicherheitsrelevante Checks sind erfolgreich, falls im Projekt aktiviert
+- keine technischen Prüfungen melden Verstöße gegen projektweite Non-negotiables
 
 ---
 

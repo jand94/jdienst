@@ -9,6 +9,7 @@ Ergänzt `CLAUDE.md` und `security.md`.
 - LLMs sind **nicht vertrauenswürdig** und müssen wie externe, unsichere Datenquellen behandelt werden.
 - LLM-Integration ist Infrastruktur, kein Business-Logik-Ersatz.
 - Alle LLM-Interaktionen müssen kontrolliert, validiert und nachvollziehbar sein.
+- Sicherheitsnormen (Policy, Mindestschutz) werden in `security.md` geführt; dieses Dokument spezifiziert die LLM-Implementierung.
 
 ---
 
@@ -139,8 +140,8 @@ LLM-Output ist immer **untrusted input**.
 
 - LLM darf keine sicherheitskritischen Entscheidungen allein treffen.
 - Keine automatische Ausführung von LLM-generierten Aktionen ohne Validierung.
-- Prompt Injection berücksichtigen und mitigieren.
-- Input-Daten validieren, bevor sie an das Modell gesendet werden.
+- Sicherheitsanforderungen zu Input/Output-Validierung, OWASP-Risiken und Secrets folgen `security.md`.
+- Dieses Dokument ergänzt nur LLM-spezifische Umsetzungsregeln (Kapselung, Fallback, deterministisches Testen).
 
 ---
 
@@ -150,6 +151,26 @@ LLM-Output ist immer **untrusted input**.
 - Deterministische Tests bevorzugen.
 - Integrationstests nur gezielt und kontrolliert gegen reale Instanzen.
 - Prompt- und Output-Parsing-Logik muss testbar sein.
+
+---
+
+## Checkliste
+
+Vor Abschluss einer LLM-Änderung:
+
+- Zugriff erfolgt über dedizierten Service
+- Timeout, Retry und Fallback sind explizit konfiguriert
+- Output-Validierung ist implementiert und getestet
+- Logging enthält keine sensiblen Daten
+- Sicherheitsprüfung gegen `security.md` ist durchgeführt
+
+---
+
+## Querverweise
+
+- Sicherheitsnormen: `security.md`
+- Testanforderungen: `testing.md`
+- CI-Durchsetzung: `ci.md`
 
 ---
 
