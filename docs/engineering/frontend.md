@@ -1,43 +1,53 @@
 # Engineering: Frontend (Next.js & React)
 
-Ergänzt `CLAUDE.md`.
+Ergaenzt `CLAUDE.md`. Dieses Dokument ist der Owner fuer Frontend-Architektur, Rendering-Strategien und UI-Qualitaetsregeln.
 
 ---
 
-## Architektur
+## Zweck und Scope
 
-- **Server-first**, wo es passt; **Client Components** nur bei echtem Interaktivitätsbedarf.  
-- Kleine, zusammensetzbare Komponenten.  
-- Präsentation und Datenbeschaffung trennen, wenn es die Klarheit verbessert.  
-- Globalen State vermeiden, wo lokaler oder serverseitiger Zustand ausreicht.
-
----
-
-## Next.js
-
-- Rendering-Strategie (SSR, SSG, ISR, Client) **passend zur Anforderung** wählen.  
-- Performance, SEO und Cacheability berücksichtigen.  
-- Kein redundantes Client-Fetching, wenn Server-Daten oder Server Actions ausreichen.
+- Leitlinien fuer Next.js-/React-Umsetzung.
+- Regeln fuer Typisierung, State-Nutzung und UX-Zustaende.
+- Performance-Basics fuer Frontend-Auslieferung.
 
 ---
 
-## React & TypeScript
+## Verbindliche Regeln
 
-- **Strikte** Typisierung.  
-- `any` nur mit triftigem Grund und kurzer Begründung (Kommentar oder Doku).  
-- Props-Typen explizit; Hooks fokussiert; Side-Effect-Ketten schlank halten.  
-- Re-Renders und doppelten State vermeiden.
+### Architektur
+
+- Server-first, wenn Interaktivitaet keinen Client-Zwang erzeugt.
+- Client Components nur bei echtem Interaktionsbedarf.
+- Komponenten klein, komposabel und klar abgegrenzt halten.
+
+### React/TypeScript
+
+- Strikte Typisierung; `any` nur mit begruendeter Ausnahme.
+- Props und oeffentliche Komponenten-APIs explizit halten.
+- Side-Effect-Ketten und doppelten State vermeiden.
+
+### UX und Accessibility
+
+- Semantisches HTML und Tastaturbedienbarkeit sicherstellen.
+- Loading-, Empty-, Error- und Success-State explizit abbilden.
+
+### Performance
+
+- Unnoetige Rerenders vermeiden.
+- Netzwerk-/Bundle-Kosten bei Entscheidungen beruecksichtigen.
 
 ---
 
-## UX & Barrierefreiheit
+## Verbotene Muster
 
-- Semantisches HTML; Tastaturbedienung; sinnvolle Labels und Beschreibungen.  
-- Lade-, Leer-, Fehler- und Erfolgszustände **explizit** behandeln.
+- Unnoetige Client-Fetches bei serverseitig loesbaren Faellen.
+- Globale Zustaende ohne klare Notwendigkeit.
+- Fehlende Zustandsbehandlung fuer Error/Empty/Loading.
 
 ---
 
-## Performance (Frontend)
+## Abgrenzung zu anderen Modulen
 
-- Unnötige Rerenders und Client-Overhead vermeiden.  
-- Netzwerk-Roundtrips und Bundle-Größe bei Features mitdenken (ohne voreilige Mikro-Optimierung).
+- API-Vertragsregeln liegen in `api.md`.
+- Testanforderungen fuer UI-Verhalten liegen in `testing.md`.
+- Sicherheitsregeln fuer Daten und Tokens liegen in `security.md`.

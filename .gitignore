@@ -1,0 +1,130 @@
+# =========================
+# OS / Editor
+# =========================
+.DS_Store
+Thumbs.db
+
+.vscode/
+.idea/
+
+# =========================
+# Python / Django
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtualenv
+.venv/
+venv/
+env/
+
+# Django
+*.log
+db.sqlite3
+media/
+staticfiles/
+
+# =========================
+# Environment / Secrets
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Migrations (optional)
+# =========================
+# Uncomment if you do NOT version migrations
+# **/migrations/*
+# !**/migrations/__init__.py
+
+# =========================
+# Node / Frontend (Next.js)
+# =========================
+node_modules/
+.next/
+out/
+build/
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# TypeScript
+# =========================
+*.tsbuildinfo
+
+# =========================
+# Coverage / Testing
+# =========================
+.coverage
+coverage/
+htmlcov/
+.pytest_cache/
+
+# Jest / Playwright
+coverage-final.json
+playwright-report/
+test-results/
+
+# =========================
+# Logs
+# =========================
+*.log
+logs/
+
+# =========================
+# Docker
+# =========================
+*.pid
+*.seed
+
+# Local overrides
+docker-compose.override.yml
+
+# =========================
+# Celery / Async
+# =========================
+celerybeat-schedule
+
+# =========================
+# Redis / Cache dumps
+# =========================
+dump.rdb
+
+# =========================
+# LLM / Ollama
+# =========================
+# Modelle sind lokal und groß
+.ollama/
+ollama-data/
+models/
+
+# =========================
+# CI / Build Artifacts
+# =========================
+.cache/
+.tmp/
+tmp/
+
+# =========================
+# IDE / Misc
+# =========================
+*.swp
+*.swo
+*~
+
+# =========================
+# Optional: Database dumps
+# =========================
+*.sql
+*.dump

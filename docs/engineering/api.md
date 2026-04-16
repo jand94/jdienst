@@ -1,51 +1,49 @@
 # Engineering: API & OpenAPI (drf-spectacular)
 
-Ergänzt `CLAUDE.md`. Pflichtstruktur und Dateinamen bleiben in `CLAUDE.md` (Non-negotiables).
+Ergaenzt `CLAUDE.md`. Dieses Dokument ist der Owner fuer API-Vertrag, Schema-Pflege und Tagging-Konventionen.
 
 ---
 
-## Grundsatz
+## Zweck und Scope
 
-- Das OpenAPI-Schema ist **Teil des API-Vertrags**, nicht optionale Doku.  
-- Bei geändertem Endpoint-Verhalten **Schema und Beispiele** mitpflegen.
-
----
-
-## Ablage & Struktur
-
-- Schema-Definitionen pro Domäne unter `api/v1/schema/` innerhalb der jeweiligen App.  
-- Große oder wiederholte Schema-Blöcke **nicht** ungebremst inline in Views — auslagern, wenn es die Wartbarkeit verbessert.  
-- Benennung zwischen Serializer, View, Route und Schema-Modul **aligned** halten.
+- Verbindliche Regeln fuer OpenAPI als API-Vertrag.
+- Konsistente Schema-Struktur in `api/v1/schema/`.
+- Einheitliche Dokumentationsqualitaet und Tagging.
 
 ---
 
-## drf-spectacular — Nutzung
+## Verbindliche Regeln
 
-- Sinnvoll einsetzen: `extend_schema`, `extend_schema_view`, `OpenApiParameter`, `OpenApiResponse`, verwandte Primitive.  
-- Custom Actions **explizit** dokumentieren.  
-- Pagination, Filter, Sortierung und Auth für Collection-Endpunkte beschreiben.
+### API-Vertrag
 
----
+- OpenAPI ist verpflichtender Teil des API-Vertrags.
+- Aenderungen am Endpoint-Verhalten erfordern Schema-Update im selben Change.
+- Request/Response, Fehlerfaelle, Auth, Parameter und Pagination sauber dokumentieren.
 
-## OpenAPI-Tags (verbindliches Format)
+### Struktur und Pflege
 
-- **Standard-Endpunkte:** `Domain - Funktion`  
-- **Custom Actions:** `Domain - Funktion - Funktionsgruppe`
+- Schema-Definitionen domaenenspezifisch unter `api/v1/schema/` ablegen.
+- Grosse Schemabloecke nicht unstrukturiert inline in Views halten.
+- Benennung zwischen Serializer, View, Route und Schema konsistent halten.
 
-**Beispiele:** `Kunden - Stammdaten`, `Kunden - Verträge`, `Kunden - Verträge - Kündigung`, `Rechnungen - Export - DATEV`
+### Tagging
 
-**Tagging-Standards**
-
-- Projektweit **konsistent**; Tags **domänenorientiert**, nicht implementierungslastig.  
-- Keine willkürliche Mischung aus Groß-/Kleinschreibung, Singular/Plural oder Ad-hoc-Abkürzungen.  
-- Verwandte Endpunkte unter demselben Tag gruppieren, sofern es fachlich Sinn ergibt.  
-- Für Custom Actions ist die **Funktionsgruppe** im Tag **Pflicht**.
+- Standard-Endpunkte: `Domain - Funktion`.
+- Custom Actions: `Domain - Funktion - Funktionsgruppe`.
+- Tags projektweit konsistent, domaenenorientiert und ohne Ad-hoc-Abweichungen.
 
 ---
 
-## Dokumentationsqualität
+## Verbotene Muster
 
-- Standard-Erfolgs- und Fehlerantworten; bei Nutzen Validierungsfehler beschreiben.  
-- Authentifizierung und Autorisierung klar angeben.  
-- Beispiele realistisch und an realer Nutzung orientiert.  
-- Keine undokumentierten Custom Actions; keine «stillen» Sonder-Response-Shapes.
+- Endpunktverhalten aendern ohne Schema-Anpassung.
+- Undokumentierte Custom Actions.
+- Inkonsistente oder technisch statt fachlich benannte Tags.
+
+---
+
+## Abgrenzung zu anderen Modulen
+
+- Backend-Schichttrennung liegt in `backend-rules.md`.
+- Testanforderungen fuer API-Tests liegen in `testing.md`.
+- CI-Checks fuer Schema/Contract laufen ueber `ci.md`.
