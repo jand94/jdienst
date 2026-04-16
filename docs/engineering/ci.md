@@ -1,221 +1,195 @@
-# Engineering: Makefile als zentrale Befehls-Fassade
+# Engineering: GitHub Actions & CI
 
-Ergänzt `CLAUDE.md`. Dieses Dokument beschreibt, wie eine zentrale `Makefile` im Repository-Root genutzt und gestaltet werden soll. Es erzwingt nicht, dass eine `Makefile` existieren muss. Sobald das Projekt eine Root-`Makefile` oder `makefile` einführt, gelten diese Regeln für Menschen und Agenten.
+Ergänzt `CLAUDE.md`. CI ist Teil des Qualitätsvertrags: Was im Default-Branch oder vor Merge erwartet wird, muss reproduzierbar und in den Workflows nachvollziehbar sein.
 
 ---
 
 ## Grundsatz
 
-- Die `Makefile` ist die bevorzugte Befehls-Fassade für wiederkehrende Entwicklungs- und Qualitätsaufgaben.
-- Ziel ist eine stabile, leicht merkbare und konsistente Einstiegsschicht für lokale Entwicklung, CI und Teamprozesse.
-- Die `Makefile` reduziert Drift zwischen README, lokaler Nutzung, Docker-Workflows und CI.
-- Wiederkehrende Aufgaben sollen über kanonische `make`-Ziele statt über ad-hoc Shell-Ketten ausführbar sein.
+- CI ist der verbindliche Qualitäts- und Durchsetzungsmechanismus für projektweite Engineering-Regeln.
+- Was lokal, in der Dokumentation oder in `Makefile` / Compose als kanonischer Workflow definiert ist, soll in CI konsistent abgebildet werden.
+- Ein Merge ist nur dann belastbar, wenn die relevanten CI-Prüfungen erfolgreich, reproduzierbar und nachvollziehbar sind.
 
 ---
 
-## Zweck
+## Kanonischer Ort
 
-Die `Makefile` dient insbesondere dazu:
-
-- häufige Entwickleraufgaben zu standardisieren
-- lokale Workflows reproduzierbar zu machen
-- CI und lokale Nutzung auf dieselben Befehle auszurichten
-- die Bedienung des Projekts für neue Teammitglieder und Agenten vorhersehbar zu machen
-- Compose, Tests, Linting, Builds und Hilfsbefehle zentral auffindbar zu machen
-
----
-
-## Ort und Dateiname
-
-- Die zentrale `Makefile` liegt ausschließlich im Repository-Root.
-- Zulässige Namen sind:
+- Workflow-Definitionen liegen in `.github/workflows/*.yml` oder `.github/workflows/*.yaml`.
+- Was für die Pipeline relevant ist, muss im Repository sichtbar und versioniert sein.
+- Keine versteckten oder nur mündlich bekannten CI-Schritte.
+- Relevante Befehle sollen nach Möglichkeit über:
   - `Makefile`
-  - `makefile`
-- Verteilte Mini-Makefiles in Teilbereichen sind nicht der Standard.
-- Ausnahmen sind nur zulässig, wenn sie bewusst eingeführt und über die Root-`Makefile` referenziert werden.
+  - dokumentierte Projekt-Skripte
+  - definierte Compose-Setups
+  abgebildet werden.
 
 ---
 
-## Erwartetes Agent-Verhalten
+## Ziele der Pipeline
 
-1. Vor wiederholten Shell-Aktionen prüfen, ob eine Root-`Makefile` existiert.
-2. Wenn eine `Makefile` existiert:
-   - zuerst `make help` verwenden, sofern vorhanden
-   - anschließend kanonische `make`-Ziele für die Aufgabe nutzen
-3. Wenn keine `Makefile` existiert:
-   - dokumentierte Befehle aus README, `docker.md`, `testing.md` oder anderen Engineering-Dokumenten verwenden
-4. Keine fiktive `Makefile` annehmen oder erzeugen, nur weil dieses Dokument existiert.
-5. Neue wiederkehrende Befehle sollen, wenn das Projekt bereits eine `Makefile` nutzt, bevorzugt dort integriert werden.
+- Früh scheitern: schnelle Checks vor teuren Jobs ausführen.
+- Determinismus: feste Runner, gepinnte Tool-Versionen und nachvollziehbare Setup-Schritte verwenden.
+- Parität zu lokal: dieselben Befehle wie in README, `docker.md`, `testing.md` und — falls vorhanden — `makefile.md` verwenden.
+- Reproduzierbarkeit: CI-Ergebnisse sollen lokal möglichst konsistent nachvollziehbar sein.
+- Reviewbarkeit: Workflows sollen lesbar, modular und wartbar sein.
 
 ---
 
-## Pflichtziel `help`
+## Definition of Done
 
-- `make help` ist das bevorzugte Einstiegstor.
-- Das Ziel `help` soll öffentliche Targets mit kurzer Beschreibung anzeigen.
-- Optional kann das Default-Target `make` direkt auf `help` zeigen.
-- Die Hilfe soll kurz, lesbar und aktuell sein.
+Ein PR oder Merge gilt nur dann als abgeschlossen, wenn:
 
-### Ziel der Hilfe
-
-- neue Teammitglieder und Agenten sollen sofort erkennen, welche Befehle kanonisch sind
-- Zielnamen und Zweck sollen transparent sein
-- die `Makefile` soll als dokumentierte Bedienoberfläche funktionieren
+- alle verpflichtenden CI-Jobs erfolgreich sind
+- Linting- und statische Prüfungen erfolgreich sind
+- relevante Tests erfolgreich sind
+- Typprüfungen erfolgreich sind, falls im Projekt aktiviert
+- Sicherheitsrelevante Checks erfolgreich sind, falls im Projekt aktiviert
+- keine projektweiten Non-negotiables aus `CLAUDE.md` oder den Engineering-Dokumenten verletzt werden
 
 ---
 
-## Empfohlene Standard-Targets
+## Determinismus und Versionierung
 
-Die exakten Namen können projektspezifisch angepasst werden, müssen dann aber klar dokumentiert und in `help` sichtbar sein.
-
-| Ziel | Typische Bedeutung |
-|------|---------------------|
-| `help` | Ziele und Kurzbeschreibung ausgeben |
-| `up` | lokalen Stack starten |
-| `down` | lokalen Stack stoppen |
-| `build` | Container oder Artefakte neu bauen |
-| `logs` | relevante Logs anzeigen oder folgen |
-| `shell` | Shell im Backend-Container oder Projektkontext öffnen |
-| `migrate` | Django-Migrationen anwenden |
-| `test` | gesamte relevante Tests ausführen |
-| `test-be` | Backend-Tests |
-| `test-fe` | Frontend-Tests |
-| `lint` | Linting ausführen |
-| `fmt` | Formatierung ausführen |
-| `ci` | lokaler CI-ähnlicher Durchlauf |
-
-Compose-Details: `docker.md`  
-Tests: `testing.md`  
-Pipeline: `ci.md`
+- Runner sollen bewusst gewählt und nicht unnötig wechselhaft konfiguriert werden.
+- Python-, Node-, Paketmanager- und Tool-Versionen sollen gepinnt oder kontrolliert sein.
+- GitHub Actions sollen, wo sinnvoll, über feste Versionen oder SHAs referenziert werden.
+- Unkontrollierte „latest“-Abhängigkeiten in kritischen Workflow-Bausteinen sind zu vermeiden.
+- Die Pipeline darf sich nicht auf implizites Runner-Verhalten verlassen.
 
 ---
 
-## Regeln für Zielgestaltung
+## Job-Struktur
 
-- Zielnamen sollen kurz, klar und vorhersehbar sein.
-- Namen sollen sich an verbreiteten Teamkonventionen orientieren.
-- Öffentliche Ziele sollen stabil bleiben, sobald sie etabliert sind.
-- Stark ähnliche Aufgaben sollen nicht unter verwirrend unterschiedlichen Namen auftreten.
-- Zielnamen sollen eher fachlich und nutzungsorientiert als implementierungsorientiert sein.
-
-### Beispiele guter Zielnamen
-
-- `up`
-- `down`
-- `build`
-- `lint`
-- `test`
-- `ci`
-
-### Zu vermeiden
-
-- kryptische Abkürzungen
-- mehrere konkurrierende Namen für dieselbe Aufgabe
-- interne Hilfsziele als öffentliche Standards
+- Schnelle Jobs wie Lint, Format-Checks und statische Analysen sollen früh in der Pipeline ausgeführt werden.
+- Unabhängige Jobs sollen parallel laufen, wenn das die Pipeline beschleunigt.
+- Teure Jobs sollen nur dann blockierend sein, wenn sie für den Qualitätsvertrag relevant sind.
+- Pipeline-Struktur soll nachvollziehbar und nicht unnötig verschachtelt sein.
+- Wiederholte Setup-Schritte sollen nach Möglichkeit zentralisiert oder wiederverwendbar gemacht werden.
 
 ---
 
-## Inhaltliche Regeln für die Makefile
+## Typische Jobs
 
-- Ziele sollen vorzugsweise vorhandene Projektbefehle aufrufen:
-  - `docker compose`
-  - Python- oder Node-Befehle
-  - bestehende Projekt-Skripte
-- Keine Secrets, Tokens oder sensible Werte in der `Makefile` hardcodieren.
-- Wiederkehrende Aufgaben sollen nicht nur in README-Textform existieren, wenn sie zuverlässig in `make` kapselbar sind.
-- Die `Makefile` soll keine unnötige versteckte Komplexität enthalten.
-- Lange oder komplexe Befehle sind zulässig, wenn sie den Bedienkomfort erhöhen und sauber strukturiert bleiben.
+Projektspezifisch ausprägen; typische Bausteine sind:
 
----
+| Bereich | Typische Prüfungen |
+|---------|--------------------|
+| Backend | `ruff`, `flake8`, `mypy` (falls genutzt), `pytest` |
+| Frontend | `eslint`, `tsc --noEmit`, Unit-Tests |
+| Repo-weit | Verbotene Pfade, Namensregeln, Secret-Scans, Struktur-Checks |
+| API | Schema-Checks, OpenAPI-Generierung, Breaking-Checks (falls definiert) |
+| Security | Dependency-Checks, Secret-Scans, Policy-Checks |
+| CI selbst | Workflow-Linting oder Validierung, wenn sinnvoll |
 
-## Determinismus und Wiederholbarkeit
-
-- `make`-Ziele sollen deterministisch und wiederholbar sein.
-- Ziele dürfen keine unerwarteten, versteckten Seiteneffekte enthalten.
-- Exit-Codes müssen korrekt propagiert werden.
-- Ein Ziel soll unter denselben Voraussetzungen konsistente Ergebnisse liefern.
-- Wiederholtes Ausführen darf keine unnötigen Schäden oder inkonsistenten Zustände erzeugen.
-
-### Wo sinnvoll anzustreben
-
-- `up` soll mehrfach ausführbar sein, ohne Chaos zu erzeugen
-- `build` soll wiederholbar und nachvollziehbar bleiben
-- `migrate` soll bewusst und kontrolliert ausgeführt werden
-- `test` und `ci` sollen reproduzierbar sein
+Details zu Tests: `testing.md`  
+Lokaler Stack: `docker.md`  
+Makefile-Konventionen: `makefile.md`  
+API-Regeln: `api.md`
 
 ---
 
-## Technische Konventionen
+## Parität zu lokaler Entwicklung
 
-- `.PHONY` soll für nicht-dateibasierte Ziele gesetzt werden.
-- Die Shell-Konfiguration soll nur angepasst werden, wenn es einen klaren technischen Grund gibt.
-- POSIX-Kompatibilität ist anzustreben, soweit projektpraktisch sinnvoll.
-- Wenn auf Windows besondere Anforderungen bestehen, sollen diese dokumentiert werden, z. B. Nutzung über WSL oder Git Bash.
-- Komplexe Zielabhängigkeiten sollen nachvollziehbar bleiben.
-
----
-
-## Beziehung zu Docker und lokaler Infrastruktur
-
-- Wenn das Projekt Docker Compose als Standard nutzt, sollen zentrale lokale Ziele darauf aufbauen.
-- Typische Compose-gekoppelte Ziele sind:
-  - `up`
-  - `down`
-  - `build`
-  - `logs`
-  - `shell`
-- Compose-Details bleiben in `docker.md`; die `Makefile` dient als Bedienoberfläche, nicht als Ersatz für die Infrastruktur-Dokumentation.
+- Wenn eine Root-`Makefile` existiert, sollen CI-Workflows bevorzugt `make`-Ziele aufrufen.
+- Beispiel: `make lint`, `make test`, `make ci`.
+- Wenn keine `Makefile` existiert, sollen dieselben dokumentierten Befehle verwendet werden, die lokal für Team und Agenten kanonisch sind.
+- CI darf keine völlig andere Befehlskette verwenden, wenn dieselbe Aufgabe bereits lokal standardisiert ist.
+- Ziel ist, dass „grün lokal, rot in CI“ selten und erklärbar bleibt.
 
 ---
 
-## Beziehung zu Tests
+## Caching
 
-- Wiederkehrende Testabläufe sollen über kanonische Ziele erreichbar sein.
-- Wenn Backend- und Frontend-Tests getrennt sinnvoll sind, sollen separate Ziele wie `test-be` und `test-fe` angeboten werden.
-- Ein aggregiertes Ziel wie `test` oder `ci` soll die relevante Standardsicht für lokale Qualitätssicherung abbilden.
-- Testziele sollen mit `testing.md` konsistent bleiben.
-
----
-
-## Beziehung zu CI
-
-- Sobald eine Root-`Makefile` existiert, soll CI nach Möglichkeit deren Ziele verwenden.
-- Bevorzugt:
-  - `make ci`
-  - oder klar getrennte Ziele wie `make lint`, `make test`
-- Die `Makefile` ist die lokale und pipelinefähige Befehls-Fassade.
-- Ziel ist, dass CI und lokale Entwicklung dieselben Einstiegspunkte verwenden, um Drift zu minimieren.
+- Abhängigkeiten wie Python- oder Node-Pakete sollen, wo sinnvoll, gecached werden.
+- Caching muss deterministisch und korrekt invalidierbar sein.
+- Caches dürfen Build-Probleme nicht verschleiern.
+- Caching ist ein Performance-Werkzeug, kein Ersatz für saubere Reproduzierbarkeit.
 
 ---
 
-## Dokumentation und Pflege
+## Geheimnisse und Umgebungen
 
-- Änderungen an wiederkehrenden Projektbefehlen sollen die `Makefile` mitberücksichtigen, sofern sie existiert.
-- Änderungen an öffentlichen Targets sollen in `help` sichtbar sein.
-- README, `docker.md`, `testing.md` und `ci.md` sollen nicht dauerhaft von der `Makefile` abweichen.
-- Die `Makefile` ist wie produktiver Projektcode zu behandeln:
+- Keine Secrets im Klartext im Repository.
+- GitHub Secrets und GitHub Environments sind für Tokens, Credentials und Deploy-Keys zu verwenden.
+- Secrets dürfen nicht in Logs, Artefakten oder Fehlermeldungen auftauchen.
+- Test- oder Service-Abhängigkeiten in CI sind bewusst zu definieren, z. B.:
+  - GitHub Actions Service Containers
+  - Compose-basierte Testdienste
+  - SQLite nur, wenn das Projekt dies explizit vorsieht
+- Sicherheitskritische Umgebungen sollen klar getrennt und kontrolliert sein.
+
+---
+
+## Artefakte und Debugbarkeit
+
+- Fehlgeschlagene Jobs müssen ausreichend Logs liefern, um Ursachen nachvollziehen zu können.
+- Test-Reports, Coverage-Daten oder relevante Artefakte sollen bereitgestellt werden, wenn sie den Debugging- oder Review-Prozess verbessern.
+- Debugging-Hilfen dürfen keine sensiblen Daten preisgeben.
+- Pipeline-Fehler müssen reproduzierbar untersuchbar sein.
+
+---
+
+## Pull Requests und Merge-Disziplin
+
+- Änderungen an Workflows oder an den in CI ausgeführten Befehlen sollen im selben PR wie die fachliche Änderung erfolgen oder in einem klar beschriebenen, zeitnahen Follow-up.
+- Wenn die Pipeline fehlschlägt, ist die Ursache zu beheben oder der Scope des PRs anzupassen.
+- CI-Regeln dürfen nicht stillschweigend umgangen werden.
+- Änderungen an `CLAUDE.md` oder `docs/engineering/` dürfen nicht als Ersatz für fehlende technische Umsetzung in der Pipeline missbraucht werden.
+- Branch-Protection und verpflichtende Status-Checks sind zu respektieren, wenn das Repository sie verwendet.
+
+---
+
+## Harte Repo-Regeln in CI spiegeln
+
+Wo sinnvoll und wirtschaftlich, sollen projektweite Regeln automatisiert geprüft werden, insbesondere:
+
+- verbotene generische Dateinamen
+- Django-Pflichtstruktur und Paketstruktur
+- `__init__.py`-Regeln
+- API-Schema-Konsistenz und Generierung
+- Security- oder Secret-Checks
+- Namens- und Strukturregeln aus `CLAUDE.md`
+
+Regeln, die im Engineering-System als Non-negotiable definiert sind, sollen nach Möglichkeit technisch durch CI abgesichert werden.
+
+---
+
+## API und Schema in CI
+
+- Wenn OpenAPI-Schema Teil des Qualitätsvertrags ist, muss die Pipeline dessen Konsistenz prüfen.
+- Schema-Generierung, Validierung oder Breaking-Checks sollen automatisiert erfolgen, wenn das Team dies festgelegt hat.
+- API-Dokumentation darf nicht stillschweigend vom tatsächlichen Verhalten abweichen.
+- Änderungen an API-Verhalten ohne begleitende Schema-Anpassung sollen nach Möglichkeit erkennbar gemacht werden.
+
+---
+
+## Beziehung zur Makefile
+
+- Sobald eine Root-`Makefile` existiert, soll CI wo sinnvoll deren Ziele verwenden.
+- `make ci` ist ein bevorzugtes Muster, wenn das Projekt einen lokalen CI-ähnlichen Ablauf definiert.
+- Einzelne Jobs können gezielt `make lint`, `make test`, `make test-be`, `make test-fe` oder ähnliche kanonische Ziele nutzen.
+- CI und lokale Entwickler-Workflows sollen dieselbe Befehlsfassade verwenden, um Drift zu reduzieren.
+
+---
+
+## Einführung oder Änderung von CI
+
+- Existiert noch kein Workflow im Repository, sollen beim Einführen von GitHub Actions auch `CLAUDE.md` und relevante Engineering-Dokumente aktualisiert werden.
+- Neue CI-Regeln müssen mit bestehender Dokumentation konsistent sein.
+- Änderungen an CI sind wie produktiver Code zu behandeln:
   - reviewbar
-  - wartbar
-  - konsistent
   - nachvollziehbar
-
----
-
-## Wann keine Makefile-Regel erzwungen wird
-
-- Dieses Dokument erzwingt nicht, dass jedes Projekt zwingend eine `Makefile` haben muss.
-- Fehlt eine Root-`Makefile`, bleiben README und Engineering-Dokumente maßgeblich.
-- Eine `Makefile` soll bewusst eingeführt werden, nicht reflexartig oder rein symbolisch.
-- Eine schlechte oder ungenutzte `Makefile` ist schlechter als keine.
+  - risikoarm
+  - dokumentiert, wenn relevant
 
 ---
 
 ## Verbotene Muster
 
-- Hardcodierte Secrets oder Tokens
-- nicht dokumentierte öffentliche Targets
-- inkonsistente oder irreführende Zielnamen
-- versteckte Seiteneffekte in Standardzielen
-- Drift zwischen `Makefile`, README und CI
-- mehrere konkurrierende Root-Einstiegspunkte ohne klaren Standard
-- Einführung einer `Makefile` ohne tatsächlichen Nutzen für den Workflow
+- versteckte CI-Logik außerhalb des Repositories
+- ungepinnte kritische Tool- oder Action-Versionen ohne Grund
+- lokale Standardbefehle und CI-Befehle driften auseinander
+- Secrets im Workflow, Repo oder Log-Ausgaben
+- stillschweigendes Deaktivieren relevanter Checks
+- CI-Umgehung durch bloße Dokumentationsänderungen ohne technische Absicherung
+- Pipeline-Schritte, die nicht reproduzierbar oder nicht erklärbar sind
