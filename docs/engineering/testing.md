@@ -1,64 +1,162 @@
-# Engineering: Testing
+# Engineering: Tests
 
-Ergaenzt `CLAUDE.md`. Dieses Dokument ist der Owner fuer Testpflicht, Testtiefe und Testqualitaet.
-
----
-
-## Zweck und Scope
-
-- Definiert, wann Tests verpflichtend sind.
-- Legt Testarten und Mindesttiefe fest.
-- Sichert reproduzierbare, robuste Testausfuehrung.
+Ergänzt `CLAUDE.md`.
 
 ---
 
-## Verbindliche Regeln
+## Grundsatz
 
-### Wann Tests Pflicht sind
+- Tests sind verpflichtender Bestandteil jeder nicht-trivialen Änderung.
+- Änderungen ohne ausreichende Tests gelten als unvollständig.
+- Verhalten, das nicht getestet ist, gilt als nicht abgesichert.
 
-Tests muessen erstellt oder angepasst werden bei:
+---
 
-- neuer oder geaenderter Geschaeftslogik
-- Bugfixes (inklusive reproduzierendem Test)
-- API-Aenderungen (Request/Response/Status/Permissions)
-- Validierungs- oder Sicherheitsaenderungen
-- Aenderungen an LLM-Integration
+## Wann Tests erforderlich sind (verbindlich)
 
-### Testarten
+Tests müssen erstellt oder angepasst werden bei:
 
-- Unit-Tests fuer reine Logik.
-- Integrations-Tests fuer Datenbank, API und Workflows.
-- E2E nur fuer kritische Journeys mit klarem Mehrwert.
+- neuer Geschäftslogik
+- Änderungen an bestehender Logik
+- neuen API-Endpunkten
+- Änderungen an Request-/Response-Strukturen
+- Änderungen an Permissions oder Security-Verhalten
+- Änderungen an Validierung
+- Änderungen an LLM-Integration
+- Bugfixes (inkl. Reproduktions-Test)
 
-### Testtiefe
+---
 
-- Nicht nur Happy Path.
-- Valid, invalid, Grenz- und Fehlerfaelle abdecken.
+## Was testen?
 
-### Testqualitaet
+Priorisiert:
 
-- Tests deterministisch und nicht brittle halten.
-- Externe Systeme in Standard-Tests mocken/isolationieren.
-- Flaky Tests als Defekt behandeln.
+- Geschäftslogik inkl. Edge Cases
+- Fehlerfälle und Grenzwerte
+- Permissions und Security-Grenzen
+- Serializer und Validierung
+- API-Verträge:
+  - Statuscodes
+  - Response-Strukturen
+  - Fehlerfälle
+- Service-Logik und Workflows
+- Integrationen mit externer Infrastruktur
+- Komplexes UI-Verhalten
 
-### LLM in Tests
+---
 
-- Standard: Mock/Fake.
-- Parsing- und Validierungslogik explizit testen.
-- Reale LLM-Integrationstests nur gezielt und kontrolliert.
+## Testarten (Pflichtstruktur)
+
+### Unit-Tests
+
+- Für reine Logik ohne I/O
+- Schnell und deterministisch
+- Keine externen Abhängigkeiten
+
+### Integrations-Tests
+
+- Datenbankverhalten
+- API-Endpunkte
+- Service-Workflows
+- Serializer + Validation
+
+### E2E-Tests
+
+- Für kritische User-Journeys
+- Nur dort, wo sie echten Mehrwert liefern
+
+---
+
+## Testtiefe (verbindlich)
+
+- Happy Path allein reicht nicht.
+- Mindestens enthalten:
+
+  - gültige Eingaben
+  - ungültige Eingaben
+  - Grenzfälle
+  - Fehlerfälle
+
+---
+
+## API-Tests (verbindlich)
+
+- Jeder relevante Endpoint muss getestet werden auf:
+  - Statuscodes
+  - Response-Struktur
+  - Validierungsfehler
+  - Permission-Verhalten
+
+- API-Tests müssen mit dem OpenAPI-Schema konsistent sein (`api.md`).
+
+---
+
+## Frontend-Tests
+
+- UI-Zustände müssen getestet werden:
+  - Loading
+  - Error
+  - Empty
+  - Success
+
+- Interaktive Komponenten müssen getestet werden.
+- Keine impliziten Annahmen über API-Verhalten ohne Mock oder Integrationstest.
+
+---
+
+## Testqualität
+
+- Tests dürfen nicht brittle sein.
+- Tests dürfen sich nicht auf interne Implementierungsdetails verlassen.
+- Tests müssen deterministisch sein.
+
+### Verboten
+
+- Flaky Tests
+- Zeitabhängige Tests ohne Kontrolle
+- echte externe Calls in Standard-Tests
+
+---
+
+## Mocking & Isolation
+
+- Externe Systeme müssen gemockt oder isoliert werden:
+  - APIs
+  - LLM / Ollama
+  - externe Services
+
+- Integrationstests gegen reale Systeme nur gezielt und kontrolliert.
+
+---
+
+## Ollama / LLM
+
+- Standard: Mock oder Fake verwenden.
+- LLM-Output deterministisch simulieren.
+- Parsing- und Validierungslogik muss getestet werden.
+
+---
+
+## Teststruktur
+
+- Tests sind klar strukturiert und nachvollziehbar.
+- Nähe zum getesteten Code ist zu bevorzugen.
+- Naming muss den Zweck des Tests klar machen.
+
+---
+
+## Refactoring & Tests
+
+- Refactoring darf bestehende Tests nicht brechen, außer Verhalten ändert sich bewusst.
+- Bestehende Tests dürfen verbessert werden, wenn sie unklar oder unzuverlässig sind.
 
 ---
 
 ## Verbotene Muster
 
-- Aenderungen ohne passende Tests.
-- Tests nur auf Happy Path.
-- Unkontrollierte echte externe Calls in Standard-Tests.
-
----
-
-## Abgrenzung zu anderen Modulen
-
-- API-Dokumentationsregeln liegen in `api.md`.
-- CI-Ausfuehrungsregeln liegen in `ci.md`.
-- Domaenen- und Schichtregeln liegen in `backend-rules.md` bzw. `frontend.md`.
+- Änderungen ohne Tests
+- Tests nur für Happy Path
+- Ungetestete API-Änderungen
+- Tests mit echten externen Abhängigkeiten
+- Ignorierte Fehlerfälle
+- Nicht reproduzierbare Tests

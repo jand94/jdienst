@@ -1,49 +1,51 @@
 # Engineering: API & OpenAPI (drf-spectacular)
 
-Ergaenzt `CLAUDE.md`. Dieses Dokument ist der Owner fuer API-Vertrag, Schema-Pflege und Tagging-Konventionen.
+Ergänzt `CLAUDE.md`. Pflichtstruktur und Dateinamen bleiben in `CLAUDE.md` (Non-negotiables).
 
 ---
 
-## Zweck und Scope
+## Grundsatz
 
-- Verbindliche Regeln fuer OpenAPI als API-Vertrag.
-- Konsistente Schema-Struktur in `api/v1/schema/`.
-- Einheitliche Dokumentationsqualitaet und Tagging.
-
----
-
-## Verbindliche Regeln
-
-### API-Vertrag
-
-- OpenAPI ist verpflichtender Teil des API-Vertrags.
-- Aenderungen am Endpoint-Verhalten erfordern Schema-Update im selben Change.
-- Request/Response, Fehlerfaelle, Auth, Parameter und Pagination sauber dokumentieren.
-
-### Struktur und Pflege
-
-- Schema-Definitionen domaenenspezifisch unter `api/v1/schema/` ablegen.
-- Grosse Schemabloecke nicht unstrukturiert inline in Views halten.
-- Benennung zwischen Serializer, View, Route und Schema konsistent halten.
-
-### Tagging
-
-- Standard-Endpunkte: `Domain - Funktion`.
-- Custom Actions: `Domain - Funktion - Funktionsgruppe`.
-- Tags projektweit konsistent, domaenenorientiert und ohne Ad-hoc-Abweichungen.
+- Das OpenAPI-Schema ist **Teil des API-Vertrags**, nicht optionale Doku.  
+- Bei geändertem Endpoint-Verhalten **Schema und Beispiele** mitpflegen.
 
 ---
 
-## Verbotene Muster
+## Ablage & Struktur
 
-- Endpunktverhalten aendern ohne Schema-Anpassung.
-- Undokumentierte Custom Actions.
-- Inkonsistente oder technisch statt fachlich benannte Tags.
+- Schema-Definitionen pro Domäne unter `api/v1/schema/` innerhalb der jeweiligen App.  
+- Große oder wiederholte Schema-Blöcke **nicht** ungebremst inline in Views — auslagern, wenn es die Wartbarkeit verbessert.  
+- Benennung zwischen Serializer, View, Route und Schema-Modul **aligned** halten.
 
 ---
 
-## Abgrenzung zu anderen Modulen
+## drf-spectacular — Nutzung
 
-- Backend-Schichttrennung liegt in `backend-rules.md`.
-- Testanforderungen fuer API-Tests liegen in `testing.md`.
-- CI-Checks fuer Schema/Contract laufen ueber `ci.md`.
+- Sinnvoll einsetzen: `extend_schema`, `extend_schema_view`, `OpenApiParameter`, `OpenApiResponse`, verwandte Primitive.  
+- Custom Actions **explizit** dokumentieren.  
+- Pagination, Filter, Sortierung und Auth für Collection-Endpunkte beschreiben.
+
+---
+
+## OpenAPI-Tags (verbindliches Format)
+
+- **Standard-Endpunkte:** `Domain - Funktion`  
+- **Custom Actions:** `Domain - Funktion - Funktionsgruppe`
+
+**Beispiele:** `Kunden - Stammdaten`, `Kunden - Verträge`, `Kunden - Verträge - Kündigung`, `Rechnungen - Export - DATEV`
+
+**Tagging-Standards**
+
+- Projektweit **konsistent**; Tags **domänenorientiert**, nicht implementierungslastig.  
+- Keine willkürliche Mischung aus Groß-/Kleinschreibung, Singular/Plural oder Ad-hoc-Abkürzungen.  
+- Verwandte Endpunkte unter demselben Tag gruppieren, sofern es fachlich Sinn ergibt.  
+- Für Custom Actions ist die **Funktionsgruppe** im Tag **Pflicht**.
+
+---
+
+## Dokumentationsqualität
+
+- Standard-Erfolgs- und Fehlerantworten; bei Nutzen Validierungsfehler beschreiben.  
+- Authentifizierung und Autorisierung klar angeben.  
+- Beispiele realistisch und an realer Nutzung orientiert.  
+- Keine undokumentierten Custom Actions; keine «stillen» Sonder-Response-Shapes.
