@@ -28,7 +28,7 @@ def test_audit_event_contains_required_audit_dimensions():
 
     assert actor_field.remote_field.model is get_user_model()
     assert isinstance(metadata_field, models.JSONField)
-    assert metadata_field.default == dict
+    assert metadata_field.default is dict
 
     action_field = AuditEvent._meta.get_field("action")
     target_model_field = AuditEvent._meta.get_field("target_model")
