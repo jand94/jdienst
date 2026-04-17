@@ -26,6 +26,9 @@ jobs:
       - name: Validate backend structure and naming conventions
         run: bash scripts/validate_backend_conventions.sh
 
+      - name: Validate text encodings
+        run: python scripts/check_text_encoding.py
+
   backend_quality:
     name: Backend Quality
     runs-on: ubuntu-latest

@@ -5,7 +5,7 @@ BACKEND_SERVICE := backend
 FRONTEND_SERVICE := frontend
 ENV_FILE := .env
 
-.PHONY: help init-env bootstrap up up-d down build logs logs-frontend logs-fe logs-backend logs-be ps shell be-shell fe-shell restart-frontend restart-fe restart-backend restart-be recreate-frontend recreate-fe recreate-backend recreate-be makemigrations migrate create-superuser createsuperuser superuser test test-be schema schema-validate worker validate-agents-manifest validate-backend-conventions ci
+.PHONY: help init-env bootstrap up up-d down build logs logs-frontend logs-fe logs-backend logs-be ps shell be-shell fe-shell restart-frontend restart-fe restart-backend restart-be recreate-frontend recreate-fe recreate-backend recreate-be makemigrations migrate create-superuser createsuperuser superuser test test-be schema schema-validate worker validate-agents-manifest validate-backend-conventions validate-text-encoding ci
 
 help: ## Zeigt verfügbare Make-Targets
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z0-9_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -104,12 +104,16 @@ worker: ## Startet optional nur den Worker-Service
 	$(COMPOSE) up worker
 
 validate-agents-manifest: ## Validiert docs/engineering/agents/manifest.json und referenzierte Dateien
-	python scripts/validate_agents_manifest.py
+	python3 scripts/validate_agents_manifest.py
 
 validate-backend-conventions: ## Prueft Backend-Struktur und Naming-Conventions gemaess Engineering-Regeln
 	bash scripts/validate_backend_conventions.sh
 
+validate-text-encoding: ## Prueft Textdateien auf gueltiges UTF-8 ohne Null-Bytes
+	python3 scripts/check_text_encoding.py
+
 ci: ## Führt einen lokalen CI-ähnlichen Lauf aus
 	$(MAKE) validate-agents-manifest
 	$(MAKE) validate-backend-conventions
+	$(MAKE) validate-text-encoding
 	$(MAKE) test-be
