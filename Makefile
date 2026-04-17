@@ -5,7 +5,7 @@ BACKEND_SERVICE := backend
 FRONTEND_SERVICE := frontend
 ENV_FILE := .env
 
-.PHONY: help init-env bootstrap up up-d down build logs ps shell be-shell fe-shell migrate superuser test test-be schema schema-validate worker validate-agents-manifest validate-backend-conventions ci
+.PHONY: help init-env bootstrap up up-d down build logs logs-frontend logs-fe logs-backend logs-be ps shell be-shell fe-shell restart-frontend restart-fe restart-backend restart-be makemigrations migrate create-superuser createsuperuser superuser test test-be schema schema-validate worker validate-agents-manifest validate-backend-conventions ci
 
 help: ## Zeigt verfügbare Make-Targets
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z0-9_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -35,6 +35,16 @@ build: ## Baut alle Images neu
 logs: ## Folgt den Logs aller Services
 	$(COMPOSE) logs -f
 
+logs-frontend: ## Folgt den Logs des Frontend-Services
+	$(COMPOSE) logs -f $(FRONTEND_SERVICE)
+
+logs-fe: logs-frontend ## Alias für Frontend-Logs
+
+logs-backend: ## Folgt den Logs des Backend-Services
+	$(COMPOSE) logs -f $(BACKEND_SERVICE)
+
+logs-be: logs-backend ## Alias für Backend-Logs
+
 ps: ## Zeigt den Status der Services
 	$(COMPOSE) ps
 
@@ -46,11 +56,28 @@ be-shell: ## Öffnet eine Shell im Backend-Container
 fe-shell: ## Öffnet eine Shell im Frontend-Container
 	$(COMPOSE) exec $(FRONTEND_SERVICE) sh
 
+restart-frontend: ## Restart des Frontend-Services
+	$(COMPOSE) restart $(FRONTEND_SERVICE)
+
+restart-fe: restart-frontend ## Alias für Frontend-Restart
+
+restart-backend: ## Restart des Backend-Services
+	$(COMPOSE) restart $(BACKEND_SERVICE)
+
+restart-be: restart-backend ## Alias für Backend-Restart
+
+makemigrations: ## Erzeugt neue Django-Migrationsdateien
+	$(COMPOSE) exec $(BACKEND_SERVICE) python manage.py makemigrations
+
 migrate: ## Führt Django-Migrationen aus (explizit)
 	$(COMPOSE) exec $(BACKEND_SERVICE) python manage.py migrate
 
-superuser: ## Erstellt einen Django-Superuser
+create-superuser: ## Erstellt einen Django-Superuser
 	$(COMPOSE) exec $(BACKEND_SERVICE) python manage.py createsuperuser
+
+createsuperuser: create-superuser ## Alias fuer create-superuser
+
+superuser: create-superuser ## Alias fuer create-superuser
 
 test: test-be ## Standard-Testtarget (Backend)
 

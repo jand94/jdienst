@@ -22,7 +22,7 @@ export default function Home() {
         <article className="rounded-xl border bg-card p-5 shadow-sm">
           <h2 className="mb-1 text-base font-semibold">Systemstatus</h2>
           <p className="text-2xl font-bold text-emerald-600">Stabil</p>
-          <p className="text-sm text-muted-foreground">Keine Stoerungen gemeldet</p>
+          <p className="text-sm text-muted-foreground">Keine Stoerungen Test</p>
         </article>
       </div>
     </section>
