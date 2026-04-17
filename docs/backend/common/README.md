@@ -19,7 +19,8 @@ gemäss den Engineering-Regeln implementiert werden.
 ## Nicht-Ziele (aktueller Stand)
 
 - Kein extern kryptographisch signierter Integritaetsnachweis (z. B. KMS-Signaturen/WORM-Storage).
-- Kein vollständiges Auditor-Rollenmodell inkl. Audit-of-audit fuer alle Lesezugriffe.
+- Kein vollständig ausgerolltes Auditor-Rollenmodell fuer alle Kontexte und Teams.
+- Kein vollständiges Audit-of-audit fuer alle Lesezugriffe (API-Reads sind abgedeckt, weitere Reader-Pfade noch nicht vollstaendig).
 - Kein umfassender, produktionsgehärteter SIEM-Betriebsprozess (SLO/Alerting/Runbook-Evidenz).
 - Keine globale Garantie, dass bereits alle kritischen Domain-Flows ausserhalb der umgesetzten Services auditiert sind.
 

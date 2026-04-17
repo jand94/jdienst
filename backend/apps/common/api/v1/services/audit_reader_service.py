@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.conf import settings
+from django.contrib.auth.models import Group, Permission
 
 from apps.common.api.v1.services.audit_service import record_audit_event
 
@@ -35,3 +36,14 @@ def log_audit_reader_access(
         actor=actor,
         metadata=payload,
     )
+
+
+def ensure_audit_reader_roles() -> tuple[list[str], int]:
+    role_names = getattr(settings, "AUDIT_READER_GROUPS", ["AuditReader"])
+    permission = Permission.objects.get(codename="view_auditevent")
+    created_total = 0
+    for role_name in role_names:
+        group, created = Group.objects.get_or_create(name=role_name)
+        group.permissions.add(permission)
+        created_total += int(created)
+    return role_names, created_total

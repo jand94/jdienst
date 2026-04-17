@@ -29,8 +29,9 @@ Verboten:
 ### Aktueller Stand
 
 - Read-only API ist implementiert und durch `IsAuditReader` abgesichert
-  (Superuser oder Permission `common.view_auditevent`).
+  (Superuser, direkte Permission `common.view_auditevent` oder konfigurierte Audit-Reader-Gruppe).
 - Unerlaubte Audit-Leseversuche werden als Security-Event protokolliert.
+- Erfolgreiche API-Lesezugriffe auf Audit-Events werden als Audit-of-audit Event mitprotokolliert.
 - Django Admin bleibt zusaetzlicher Reader fuer administrative Untersuchung.
 
 ### Zielbild

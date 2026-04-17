@@ -41,6 +41,8 @@ Einheitliche, nachvollziehbare Auditierung fuer alle kuenftigen Domain-Apps.
 
 - `AuditEventViewSet`: read-only List/Detail API mit Filter/Pagination.
 - `IsAuditReader`: Zugriff nur fuer Superuser oder `common.view_auditevent`.
+- `AuditOperationsViewSet`: Operator-Endpunkte fuer Verify/Health/Export-Preview/Archive/Role-Sync.
+- `IsAuditOperator`: Zugriff fuer Superuser oder Staff mit Audit-Reader-Rechten.
 
 ### Admin
 

@@ -50,3 +50,21 @@ class AuditEventSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
+
+
+class AuditIntegrityVerifyRequestSerializer(serializers.Serializer):
+    limit = serializers.IntegerField(required=False, min_value=1, max_value=10000)
+    create_checkpoint = serializers.BooleanField(required=False, default=False)
+
+
+class AuditArchiveRequestSerializer(serializers.Serializer):
+    before_days = serializers.IntegerField(required=False, min_value=1, max_value=36500, default=90)
+    use_retention_policy = serializers.BooleanField(required=False, default=False)
+
+
+class AuditHealthSnapshotQuerySerializer(serializers.Serializer):
+    window_hours = serializers.IntegerField(required=False, min_value=1, max_value=720, default=24)
+
+
+class AuditSiemExportPreviewQuerySerializer(serializers.Serializer):
+    limit = serializers.IntegerField(required=False, min_value=1, max_value=500, default=100)

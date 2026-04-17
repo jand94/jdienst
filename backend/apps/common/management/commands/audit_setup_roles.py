@@ -1,19 +1,14 @@
-from django.conf import settings
-from django.contrib.auth.models import Group, Permission
 from django.core.management.base import BaseCommand
+
+from apps.common.api.v1.services import ensure_audit_reader_roles
 
 
 class Command(BaseCommand):
     help = "Erzeugt/aktualisiert Audit-Reader-Rollen mit den benoetigten Permissions."
 
     def handle(self, *args, **options):
-        role_names = getattr(settings, "AUDIT_READER_GROUPS", ["AuditReader"])
-        permission = Permission.objects.get(codename="view_auditevent")
-        created_total = 0
+        role_names, created_total = ensure_audit_reader_roles()
         for role_name in role_names:
-            group, created = Group.objects.get_or_create(name=role_name)
-            group.permissions.add(permission)
-            created_total += int(created)
             self.stdout.write(
                 self.style.SUCCESS(
                     f"Role '{role_name}' ready with permission common.view_auditevent",

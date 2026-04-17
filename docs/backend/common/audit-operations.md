@@ -59,6 +59,12 @@ Empfohlene Alerts:
   mit JSONL-Ausgabe und Feldern inkl. `integrity_hash`/`previous_hash`.
 - Implementiert: `python manage.py audit_health_snapshot --window-hours <n>` fuer Monitoring-Daten.
 - Implementiert: `python manage.py audit_verify_integrity [--create-checkpoint]` fuer periodische Verifikation.
+- API-Expose fuer Operatoren:
+  - `GET /api/common/v1/audit-ops/health-snapshot/`
+  - `POST /api/common/v1/audit-ops/verify-integrity/`
+  - `GET /api/common/v1/audit-ops/siem-export-preview/`
+  - `POST /api/common/v1/audit-ops/archive-events/`
+  - `POST /api/common/v1/audit-ops/setup-roles/`
 - Stelle sicher, dass Exporte keine sensiblen Rohdaten enthalten.
 - Fuehre Integrations- und Wiederanlauftests regelmaessig durch.
 - Offen: produktiver Transfer in SIEM-Pipeline inkl. Fehlerhandling/SLO.

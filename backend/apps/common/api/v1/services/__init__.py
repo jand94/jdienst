@@ -1,5 +1,5 @@
 from .audit_integrity_service import create_integrity_checkpoint, verify_integrity_chain
-from .audit_reader_service import is_audit_reader, log_audit_reader_access
+from .audit_reader_service import ensure_audit_reader_roles, is_audit_reader, log_audit_reader_access
 from .audit_operations_service import (
     archive_events_by_retention_policy,
     archive_old_events,
@@ -18,6 +18,7 @@ __all__ = [
     "archive_old_events",
     "build_siem_payload",
     "collect_audit_health_snapshot",
+    "ensure_audit_reader_roles",
     "export_events_for_siem",
     "is_audit_reader",
     "log_audit_reader_access",
