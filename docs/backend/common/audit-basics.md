@@ -59,6 +59,7 @@ Einheitliche, nachvollziehbare Auditierung fuer alle kuenftigen Domain-Apps.
   - `python manage.py audit_archive_events --before-days <n>`
   - `python manage.py audit_archive_events --use-retention-policy`
   - `python manage.py audit_export_siem --limit <n> [--mark-exported]`
+  - `python manage.py audit_backfill_integrity_hashes [--dry-run]`
   - `python manage.py audit_verify_integrity [--create-checkpoint]`
   - `python manage.py audit_health_snapshot --window-hours <n>`
   - `python manage.py audit_setup_roles`

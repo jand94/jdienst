@@ -57,6 +57,7 @@ Empfohlene Alerts:
 
 - Implementiert: `python manage.py audit_export_siem --limit <n> [--mark-exported]`
   mit JSONL-Ausgabe und Feldern inkl. `integrity_hash`/`previous_hash`.
+- Implementiert: `python manage.py audit_backfill_integrity_hashes [--dry-run]` fuer Legacy-Reparatur fehlender Hashes.
 - Implementiert: `python manage.py audit_health_snapshot --window-hours <n>` fuer Monitoring-Daten.
 - Implementiert: `python manage.py audit_verify_integrity [--create-checkpoint]` fuer periodische Verifikation.
 - API-Expose fuer Operatoren:

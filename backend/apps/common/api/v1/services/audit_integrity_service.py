@@ -146,3 +146,71 @@ def verify_integrity_chain(
             verification.save(update_fields=("status", "details", "updated_at"))
 
     return verification
+
+
+def backfill_integrity_hashes(
+    *,
+    dry_run: bool = False,
+    limit: int | None = None,
+    source: str = "management-command",
+) -> dict:
+    queryset = AuditEvent.objects.order_by("created_at", "id")
+    if limit:
+        event_ids = list(queryset.values_list("id", flat=True))
+        event_ids = event_ids[-limit:]
+        queryset = queryset.filter(id__in=event_ids).order_by("created_at", "id")
+    events = list(queryset)
+    if not events:
+        return {
+            "checked_events": 0,
+            "corrected_events": 0,
+            "dry_run": dry_run,
+            "corrected_event_ids": [],
+        }
+
+    previous_hash = events[0].previous_hash if limit else ""
+    corrected_event_ids: list[str] = []
+
+    for event in events:
+        expected_integrity_hash = _calculate_integrity_hash(
+            action=event.action,
+            target_model=event.target_model,
+            target_id=event.target_id,
+            actor_id=event.actor_id,
+            metadata=event.metadata,
+            ip_address=event.ip_address,
+            user_agent=event.user_agent,
+            previous_hash=previous_hash,
+        )
+        should_fix = (
+            event.previous_hash != previous_hash
+            or event.integrity_hash != expected_integrity_hash
+        )
+        if should_fix:
+            corrected_event_ids.append(str(event.pk))
+            if not dry_run:
+                AuditEvent.objects.filter(pk=event.pk).update(
+                    previous_hash=previous_hash,
+                    integrity_hash=expected_integrity_hash,
+                    updated_at=timezone.now(),
+                )
+        previous_hash = expected_integrity_hash
+
+    if corrected_event_ids and not dry_run:
+        record_audit_event(
+            action="common.audit_integrity.backfilled",
+            target_model="common.AuditEvent",
+            target_id="batch",
+            metadata={
+                "source": source,
+                "corrected_events": len(corrected_event_ids),
+                "limit": limit,
+            },
+        )
+
+    return {
+        "checked_events": len(events),
+        "corrected_events": len(corrected_event_ids),
+        "dry_run": dry_run,
+        "corrected_event_ids": corrected_event_ids,
+    }

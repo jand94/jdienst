@@ -120,3 +120,22 @@ def test_audit_health_snapshot_command_returns_json_payload():
     payload = json.loads(output.getvalue())
     assert payload["window_hours"] == 72
     assert "retention_class_counts" in payload
+
+
+@pytest.mark.django_db
+def test_audit_backfill_integrity_hashes_command_repairs_legacy_events():
+    event = record_audit_event(
+        action="auth.login.failed",
+        target_model="accounts.User",
+        target_id="77",
+        metadata={"source": "api"},
+    )
+    AuditEvent.objects.filter(pk=event.pk).update(integrity_hash="")
+    output = StringIO()
+
+    call_command("audit_backfill_integrity_hashes", stdout=output)
+
+    result = json.loads(output.getvalue())
+    event.refresh_from_db()
+    assert result["corrected_events"] >= 1
+    assert event.integrity_hash != ""
