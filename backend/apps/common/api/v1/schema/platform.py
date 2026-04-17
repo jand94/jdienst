@@ -36,4 +36,14 @@ platform_ops_viewset_schema = extend_schema_view(
         summary="Generates a platform SLO report and applies maintenance tasks.",
         responses={200: PlatformSloReportResponseSerializer, 403: ApiErrorResponseSerializer},
     ),
+    tenant_consistency=extend_schema(
+        tags=["Common - Platform - Operations"],
+        summary="Validates tenant membership consistency constraints.",
+        responses={200: OpenApiTypes.OBJECT, 403: ApiErrorResponseSerializer},
+    ),
+    soft_delete_cleanup=extend_schema(
+        tags=["Common - Platform - Operations"],
+        summary="Runs soft-delete retention cleanup for technical records.",
+        responses={200: OpenApiTypes.OBJECT, 403: ApiErrorResponseSerializer},
+    ),
 )

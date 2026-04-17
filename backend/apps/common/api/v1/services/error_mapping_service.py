@@ -2,12 +2,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.core.exceptions import PermissionDenied
+from django.http import Http404
 from django.http import HttpRequest
 from rest_framework import status
 from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_exception_handler
 
+from apps.common.constants import ErrorCode
 from apps.common.api.v1.services.audit_context_service import extract_audit_correlation_ids
 from apps.common.exceptions import CommonError
 
@@ -52,15 +55,33 @@ def map_exception_to_response(
 
     if isinstance(exc, APIException):
         payload = _build_error_payload(
-            code=getattr(exc, "default_code", "api_error"),
+            code=getattr(exc, "default_code", ErrorCode.API_ERROR),
             message=str(exc.detail),
             request_id=request_id,
             trace_id=trace_id,
         )
         return exc.status_code, payload
 
+    if isinstance(exc, Http404):
+        payload = _build_error_payload(
+            code="not_found",
+            message="The requested resource was not found.",
+            request_id=request_id,
+            trace_id=trace_id,
+        )
+        return status.HTTP_404_NOT_FOUND, payload
+
+    if isinstance(exc, PermissionDenied):
+        payload = _build_error_payload(
+            code="permission_denied",
+            message="You do not have permission to perform this action.",
+            request_id=request_id,
+            trace_id=trace_id,
+        )
+        return status.HTTP_403_FORBIDDEN, payload
+
     payload = _build_error_payload(
-        code="internal_error",
+        code=ErrorCode.INTERNAL_ERROR,
         message="An internal error occurred.",
         request_id=request_id,
         trace_id=trace_id,

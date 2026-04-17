@@ -128,6 +128,11 @@ jobs:
             apps/common/tests/unit/services/test_outbox_service.py \
             apps/common/tests/unit/services/test_audit_reader_service.py \
             apps/common/tests/unit/services/test_audit_context_service.py \
+            apps/common/tests/unit/services/test_constants_registry.py \
+            apps/common/tests/unit/services/test_distributed_lock_service.py \
+            apps/common/tests/unit/services/test_platform_settings_service.py \
+            apps/common/tests/unit/services/test_tenant_context_service.py \
+            apps/common/tests/unit/models/test_soft_delete_model.py \
             apps/common/tests/integration/api/test_audit_event_api.py \
             apps/common/tests/integration/api/test_audit_ops_api.py \
             apps/common/tests/integration/api/test_audit_schema_contract.py \
@@ -138,7 +143,9 @@ jobs:
             apps/accounts/tests/integration/api/test_account_user_api.py
 
       - name: Run platform compliance check
-        run: python manage.py common_platform_check --window-hours 24 --fail-on-error
+        run: |
+          python manage.py common_platform_check --window-hours 24 --fail-on-error
+          python manage.py tenant_consistency_check --fail-on-error
 
   frontend_quality:
     name: Frontend Quality

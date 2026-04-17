@@ -7,10 +7,28 @@ account_user_viewset_schema = extend_schema_view(
     list=extend_schema(
         tags=["Accounts - User"],
         summary="List users (staff only)",
+        parameters=[
+            OpenApiParameter(
+                name="X-Tenant-Slug",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.HEADER,
+                required=True,
+                description="Active tenant scope for the request.",
+            )
+        ],
     ),
     retrieve=extend_schema(
         tags=["Accounts - User"],
         summary="Retrieve user profile by id",
+        parameters=[
+            OpenApiParameter(
+                name="X-Tenant-Slug",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.HEADER,
+                required=True,
+                description="Active tenant scope for the request.",
+            )
+        ],
     ),
     update=extend_schema(
         tags=["Accounts - User"],
@@ -18,6 +36,13 @@ account_user_viewset_schema = extend_schema_view(
         request=AccountUserUpdateSerializer,
         responses=AccountUserReadSerializer,
         parameters=[
+            OpenApiParameter(
+                name="X-Tenant-Slug",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.HEADER,
+                required=True,
+                description="Active tenant scope for the request.",
+            ),
             OpenApiParameter(
                 name="Idempotency-Key",
                 type=OpenApiTypes.STR,
@@ -33,6 +58,13 @@ account_user_viewset_schema = extend_schema_view(
         request=AccountUserUpdateSerializer,
         responses=AccountUserReadSerializer,
         parameters=[
+            OpenApiParameter(
+                name="X-Tenant-Slug",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.HEADER,
+                required=True,
+                description="Active tenant scope for the request.",
+            ),
             OpenApiParameter(
                 name="Idempotency-Key",
                 type=OpenApiTypes.STR,

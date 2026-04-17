@@ -6,15 +6,16 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Callable
 
-from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Min, Q
 from django.utils import timezone
 
+from apps.common.constants import HeaderName
+from apps.common.api.v1.services.platform_settings_service import get_platform_settings
 from apps.common.exceptions import ConflictError, ValidationError
 from apps.common.models import IdempotencyKey
 
-IDEMPOTENCY_KEY_HEADER = "Idempotency-Key"
+IDEMPOTENCY_KEY_HEADER = HeaderName.IDEMPOTENCY_KEY
 DEFAULT_IDEMPOTENCY_TTL_SECONDS = 3600
 
 
@@ -224,7 +225,6 @@ def collect_idempotency_health_snapshot() -> dict[str, int]:
 
 
 def cleanup_expired_idempotency_keys() -> int:
-    cutoff = timezone.now() - timedelta(
-        seconds=int(getattr(settings, "COMMON_IDEMPOTENCY_RETENTION_SECONDS", 86400))
-    )
+    retention_seconds = get_platform_settings().idempotency_retention_seconds
+    cutoff = timezone.now() - timedelta(seconds=retention_seconds)
     return IdempotencyKey.objects.filter(expires_at__lt=cutoff).delete()[0]

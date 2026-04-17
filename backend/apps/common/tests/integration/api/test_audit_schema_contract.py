@@ -34,11 +34,17 @@ def test_platform_schema_tags_and_paths():
     snapshot_path = "/api/common/v1/platform-health/snapshot/"
     check_path = "/api/common/v1/platform-ops/check/"
     slo_path = "/api/common/v1/platform-ops/slo-report/"
+    tenant_consistency_path = "/api/common/v1/platform-ops/tenant-consistency/"
+    soft_delete_cleanup_path = "/api/common/v1/platform-ops/soft-delete-cleanup/"
 
     assert snapshot_path in paths
     assert check_path in paths
     assert slo_path in paths
+    assert tenant_consistency_path in paths
+    assert soft_delete_cleanup_path in paths
 
     assert paths[snapshot_path]["get"]["tags"] == ["Common - Platform - Health"]
     assert paths[check_path]["post"]["tags"] == ["Common - Platform - Operations"]
     assert paths[slo_path]["post"]["tags"] == ["Common - Platform - Operations"]
+    assert paths[tenant_consistency_path]["post"]["tags"] == ["Common - Platform - Operations"]
+    assert paths[soft_delete_cleanup_path]["post"]["tags"] == ["Common - Platform - Operations"]

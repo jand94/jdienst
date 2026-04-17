@@ -3,8 +3,10 @@ from __future__ import annotations
 from contextvars import ContextVar
 from typing import Any
 
-_REQUEST_ID_HEADERS = ("X-Request-ID", "X-Correlation-ID")
-_TRACE_ID_HEADERS = ("X-Trace-ID", "traceparent")
+from apps.common.constants import HeaderName
+
+_REQUEST_ID_HEADERS = (HeaderName.REQUEST_ID, HeaderName.CORRELATION_ID)
+_TRACE_ID_HEADERS = (HeaderName.TRACE_ID, HeaderName.TRACE_PARENT)
 _REQUEST_CONTEXT: ContextVar[dict[str, Any]] = ContextVar("common_request_context", default={})
 
 

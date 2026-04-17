@@ -9,6 +9,7 @@ from django.db.models import Count, Min, Q
 from django.utils import timezone
 from django.utils.module_loading import import_string
 
+from apps.common.api.v1.services.platform_settings_service import get_platform_settings
 from apps.common.models import OutboxEvent
 
 DEFAULT_OUTBOX_BATCH_SIZE = 100
@@ -47,6 +48,7 @@ def _resolve_dispatch_handler() -> Callable[[OutboxEvent], None] | None:
 
 
 def dispatch_pending_outbox_events(*, batch_size: int = DEFAULT_OUTBOX_BATCH_SIZE) -> dict[str, int]:
+    settings_values = get_platform_settings()
     now = timezone.now()
     handler = _resolve_dispatch_handler()
     success = 0
@@ -74,7 +76,7 @@ def dispatch_pending_outbox_events(*, batch_size: int = DEFAULT_OUTBOX_BATCH_SIZ
             event.attempts += 1
             event.last_error = str(exc)
             event.next_attempt_at = timezone.now() + timedelta(seconds=min(300, 2**event.attempts))
-            if event.attempts >= getattr(settings, "COMMON_OUTBOX_MAX_ATTEMPTS", 10):
+            if event.attempts >= settings_values.outbox_max_attempts:
                 event.status = OutboxEvent.STATUS_FAILED
             event.save(update_fields=("status", "attempts", "last_error", "next_attempt_at", "updated_at"))
             failed += 1

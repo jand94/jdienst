@@ -9,6 +9,10 @@ class PlatformOperationNoInputSerializer(serializers.Serializer):
     window_hours = serializers.IntegerField(required=False, min_value=1, max_value=720, default=24)
 
 
+class PlatformSoftDeleteCleanupRequestSerializer(serializers.Serializer):
+    older_than_days = serializers.IntegerField(required=False, min_value=1, max_value=3650, default=30)
+
+
 class PlatformHealthResponseSerializer(serializers.Serializer):
     window_hours = serializers.IntegerField()
     audit = serializers.JSONField()

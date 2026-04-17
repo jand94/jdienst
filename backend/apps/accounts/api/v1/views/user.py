@@ -12,8 +12,10 @@ from apps.accounts.api.v1.serializers import AccountUserReadSerializer, AccountU
 from apps.accounts.api.v1.services import deactivate_user, update_user_profile
 from apps.accounts.api.v1.services import log_user_list_access, log_user_read_access
 from apps.common.api.v1.services import (
+    ensure_user_in_tenant,
     execute_idempotent_operation,
     extract_audit_correlation_ids,
+    require_tenant,
     require_idempotency_key,
 )
 from apps.accounts.models import User
@@ -59,6 +61,22 @@ class AccountUserViewSet(
             response["X-Idempotent-Replayed"] = "true"
         return response
 
+    def _current_tenant(self, request):
+        return require_tenant(request)
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = getattr(self.request, "user", None)
+        if user is None or not user.is_authenticated:
+            return queryset.none()
+        tenant = self._current_tenant(self.request)
+        if user.is_superuser:
+            return queryset
+        return queryset.filter(
+            tenant_memberships__tenant=tenant,
+            tenant_memberships__is_active=True,
+        ).distinct()
+
     def get_permissions(self):
         if self.action == "list":
             return [IsAuthenticated(), IsStaffUser()]
@@ -76,6 +94,8 @@ class AccountUserViewSet(
         return AccountUserReadSerializer
 
     def list(self, request, *args, **kwargs):
+        tenant = self._current_tenant(request)
+        ensure_user_in_tenant(user=request.user, tenant=tenant)
         response = super().list(request, *args, **kwargs)
         request_id, trace_id = extract_audit_correlation_ids(request)
         log_user_list_access(
@@ -87,6 +107,8 @@ class AccountUserViewSet(
         return response
 
     def retrieve(self, request, *args, **kwargs):
+        tenant = self._current_tenant(request)
+        ensure_user_in_tenant(user=request.user, tenant=tenant)
         target = self.get_object()
         response = super().retrieve(request, *args, **kwargs)
         request_id, trace_id = extract_audit_correlation_ids(request)
@@ -106,6 +128,15 @@ class AccountUserViewSet(
         tags=["Accounts - User - Self Service"],
         summary="Retrieve authenticated user profile",
         responses=AccountUserReadSerializer,
+        parameters=[
+            OpenApiParameter(
+                name="X-Tenant-Slug",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.HEADER,
+                required=True,
+                description="Active tenant scope for the request.",
+            )
+        ],
     )
     @extend_schema(
         methods=["PATCH"],
@@ -114,6 +145,13 @@ class AccountUserViewSet(
         request=AccountUserUpdateSerializer,
         responses=AccountUserReadSerializer,
         parameters=[
+            OpenApiParameter(
+                name="X-Tenant-Slug",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.HEADER,
+                required=True,
+                description="Active tenant scope for the request.",
+            ),
             OpenApiParameter(
                 name="Idempotency-Key",
                 type=OpenApiTypes.STR,
@@ -124,6 +162,8 @@ class AccountUserViewSet(
         ],
     )
     def me(self, request):
+        tenant = self._current_tenant(request)
+        ensure_user_in_tenant(user=request.user, tenant=tenant)
         request_id, trace_id = extract_audit_correlation_ids(request)
         if request.method == "GET":
             serializer = AccountUserReadSerializer(request.user)
@@ -169,6 +209,13 @@ class AccountUserViewSet(
         responses=AccountUserReadSerializer,
         parameters=[
             OpenApiParameter(
+                name="X-Tenant-Slug",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.HEADER,
+                required=True,
+                description="Active tenant scope for the request.",
+            ),
+            OpenApiParameter(
                 name="Idempotency-Key",
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.HEADER,
@@ -178,6 +225,8 @@ class AccountUserViewSet(
         ],
     )
     def deactivate_me(self, request):
+        tenant = self._current_tenant(request)
+        ensure_user_in_tenant(user=request.user, tenant=tenant)
         request_id, trace_id = extract_audit_correlation_ids(request)
         return self._execute_idempotent_update(
             request=request,
@@ -197,6 +246,8 @@ class AccountUserViewSet(
         )
 
     def partial_update(self, request, *args, **kwargs):
+        tenant = self._current_tenant(request)
+        ensure_user_in_tenant(user=request.user, tenant=tenant)
         target = self.get_object()
         request_id, trace_id = extract_audit_correlation_ids(request)
         serializer = AccountUserUpdateSerializer(
@@ -224,6 +275,8 @@ class AccountUserViewSet(
         )
 
     def update(self, request, *args, **kwargs):
+        tenant = self._current_tenant(request)
+        ensure_user_in_tenant(user=request.user, tenant=tenant)
         target = self.get_object()
         request_id, trace_id = extract_audit_correlation_ids(request)
         serializer = AccountUserUpdateSerializer(

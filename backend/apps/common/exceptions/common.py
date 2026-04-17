@@ -1,5 +1,8 @@
+from apps.common.constants import ErrorCode
+
+
 class CommonError(Exception):
-    code = "common_error"
+    code = ErrorCode.COMMON_ERROR
     status_code = 500
     default_message = "An unexpected error occurred."
 
@@ -10,24 +13,24 @@ class CommonError(Exception):
 
 
 class ValidationError(CommonError):
-    code = "validation_error"
+    code = ErrorCode.VALIDATION_ERROR
     status_code = 400
     default_message = "The request data is invalid."
 
 
 class ConflictError(CommonError):
-    code = "conflict_error"
+    code = ErrorCode.CONFLICT_ERROR
     status_code = 409
     default_message = "The request conflicts with current state."
 
 
 class InfrastructureError(CommonError):
-    code = "infrastructure_error"
+    code = ErrorCode.INFRASTRUCTURE_ERROR
     status_code = 503
     default_message = "A dependent infrastructure component is unavailable."
 
 
 class SecurityError(CommonError):
-    code = "security_error"
+    code = ErrorCode.SECURITY_ERROR
     status_code = 403
     default_message = "The requested operation is not permitted."

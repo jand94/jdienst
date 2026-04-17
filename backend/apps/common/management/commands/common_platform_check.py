@@ -2,7 +2,7 @@ import json
 
 from django.core.management.base import BaseCommand, CommandError
 
-from apps.common.api.v1.services import run_platform_check
+from apps.common.api.v1.services import lock_scope, run_platform_check
 
 
 class Command(BaseCommand):
@@ -13,7 +13,8 @@ class Command(BaseCommand):
         parser.add_argument("--fail-on-error", action="store_true")
 
     def handle(self, *args, **options):
-        payload = run_platform_check(window_hours=options["window_hours"])
+        with lock_scope(key="common.platform_check", owner="management:common_platform_check", ttl_seconds=60):
+            payload = run_platform_check(window_hours=options["window_hours"])
         self.stdout.write(json.dumps(payload, sort_keys=True))
         if options["fail_on_error"] and not payload["passed"]:
             raise CommandError("Platform check failed.")

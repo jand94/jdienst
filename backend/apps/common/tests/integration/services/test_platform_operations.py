@@ -6,6 +6,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 
 from apps.common.api.v1.services import record_audit_event
+from apps.common.tests.factories import TenantFactory, TenantMembershipFactory, UserFactory
 
 
 @pytest.mark.django_db
@@ -42,3 +43,27 @@ def test_common_platform_check_can_fail_on_error_without_fresh_integrity():
 
     with pytest.raises(CommandError):
         call_command("common_platform_check", stdout=output, fail_on_error=True)
+
+
+@pytest.mark.django_db
+def test_tenant_consistency_check_command_reports_passed_state():
+    tenant = TenantFactory()
+    TenantMembershipFactory(user=UserFactory(), tenant=tenant)
+    output = StringIO()
+
+    call_command("tenant_consistency_check", stdout=output)
+
+    payload = json.loads(output.getvalue())
+    assert payload["passed"] is True
+
+
+@pytest.mark.django_db
+def test_soft_delete_retention_cleanup_command_outputs_payload():
+    TenantFactory().soft_delete(reason="retention")
+    output = StringIO()
+
+    call_command("soft_delete_retention_cleanup", stdout=output, older_than_days=3650)
+
+    payload = json.loads(output.getvalue())
+    assert payload["model"] == "common.Tenant"
+    assert "hard_deleted" in payload

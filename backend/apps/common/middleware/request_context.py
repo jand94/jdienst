@@ -7,6 +7,7 @@ from apps.common.api.v1.services.audit_context_service import (
     extract_audit_correlation_ids,
     set_request_context,
 )
+from apps.common.constants import HeaderName
 
 
 class CommonRequestContextMiddleware:
@@ -19,6 +20,7 @@ class CommonRequestContextMiddleware:
         trace_id = trace_id or request_id
         request.common_request_id = request_id
         request.common_trace_id = trace_id
+        tenant = getattr(request, "common_tenant", None)
         set_request_context(
             {
                 "request_id": request_id,
@@ -26,10 +28,12 @@ class CommonRequestContextMiddleware:
                 "path": request.path,
                 "method": request.method,
                 "user_id": str(getattr(getattr(request, "user", None), "pk", "")) or None,
+                "tenant_id": str(getattr(tenant, "pk", "")) or None,
+                "tenant_slug": getattr(tenant, "slug", None),
             }
         )
         response = self.get_response(request)
-        response["X-Request-ID"] = request_id
-        response["X-Trace-ID"] = trace_id
+        response[HeaderName.REQUEST_ID] = request_id
+        response[HeaderName.TRACE_ID] = trace_id
         clear_request_context()
         return response

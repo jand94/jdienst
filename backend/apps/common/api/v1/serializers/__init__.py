@@ -18,6 +18,7 @@ from .platform import (
     PlatformHealthQuerySerializer,
     PlatformHealthResponseSerializer,
     PlatformOperationNoInputSerializer,
+    PlatformSoftDeleteCleanupRequestSerializer,
     PlatformSloReportResponseSerializer,
 )
 
@@ -39,5 +40,6 @@ __all__ = [
     "PlatformHealthQuerySerializer",
     "PlatformHealthResponseSerializer",
     "PlatformOperationNoInputSerializer",
+    "PlatformSoftDeleteCleanupRequestSerializer",
     "PlatformSloReportResponseSerializer",
 ]

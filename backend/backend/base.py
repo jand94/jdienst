@@ -71,9 +71,10 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "apps.common.middleware.request_context.CommonRequestContextMiddleware",
+    "apps.common.middleware.tenant_context.TenantContextMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.common.middleware.request_context.CommonRequestContextMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -182,3 +183,6 @@ COMMON_PLATFORM_MAX_OUTBOX_OLDEST_AGE_SECONDS = int(
 COMMON_PLATFORM_MAX_AUDIT_VERIFICATION_AGE_HOURS = int(
     os.getenv("COMMON_PLATFORM_MAX_AUDIT_VERIFICATION_AGE_HOURS", "24")
 )
+COMMON_TENANT_HEADER_REQUIRED = _env_bool("COMMON_TENANT_HEADER_REQUIRED", default=True)
+COMMON_TENANT_DEFAULT_SLUG = os.getenv("COMMON_TENANT_DEFAULT_SLUG", "")
+COMMON_IDEMPOTENCY_RETENTION_SECONDS = int(os.getenv("COMMON_IDEMPOTENCY_RETENTION_SECONDS", "86400"))
