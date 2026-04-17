@@ -9,6 +9,7 @@ from apps.accounts.api.v1.permissions import IsSelfOrStaff, IsStaffUser
 from apps.accounts.api.v1.schema import account_user_viewset_schema
 from apps.accounts.api.v1.serializers import AccountUserReadSerializer, AccountUserUpdateSerializer
 from apps.accounts.api.v1.services import deactivate_user, update_user_profile
+from apps.accounts.api.v1.services import log_user_list_access, log_user_read_access
 from apps.accounts.models import User
 
 
@@ -41,10 +42,27 @@ class AccountUserViewSet(
             return AccountUserUpdateSerializer
         return AccountUserReadSerializer
 
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        log_user_list_access(actor=request.user, source="api")
+        return response
+
+    def retrieve(self, request, *args, **kwargs):
+        target = self.get_object()
+        response = super().retrieve(request, *args, **kwargs)
+        log_user_read_access(actor=request.user, target=target, source="api", scope="detail")
+        return response
+
     @action(detail=False, methods=["get", "patch"], url_path="me")
     def me(self, request):
         if request.method == "GET":
             serializer = AccountUserReadSerializer(request.user)
+            log_user_read_access(
+                actor=request.user,
+                target=request.user,
+                source="api",
+                scope="self",
+            )
             return Response(serializer.data)
 
         serializer = AccountUserUpdateSerializer(

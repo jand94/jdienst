@@ -18,10 +18,11 @@ Sie folgt den Leitplanken aus:
 - **Producers**:
   - Admin-Hooks (`AdminAuditTrailMixin`)
   - Domain-Services (expliziter Service-Aufruf)
-  - spaeter: API-/Auth-/Task-Events
+  - API-/Auth-/Permission-Services in implementierten Apps (z. B. `accounts`)
 - **Reader**:
   - Django Admin
-  - spaeter: read-only Audit API fuer autorisierte Rollen
+  - Read-only Audit API (`AuditEventViewSet`) fuer autorisierte Rollen
+  - SIEM-Exportpfad ueber Management Command
 
 ## Datenfluss
 
@@ -29,11 +30,12 @@ Sie folgt den Leitplanken aus:
 flowchart TD
     producerAdmin[AdminHooks] --> writer[record_audit_event]
     producerService[DomainServices] --> writer
-    producerFuture[AuthApiTasksFuture] --> writer
+    producerAuthApi[AuthApiServices] --> writer
     writer --> auditStore[AuditEventStore]
     auditStore --> adminReader[DjangoAdminReader]
-    auditStore --> apiReader[ReadOnlyAuditAPIFuture]
-    auditStore --> exportReader[SIEMExportFuture]
+    auditStore --> apiReader[ReadOnlyAuditAPI]
+    auditStore --> archivePath[ArchiveCommand]
+    auditStore --> exportReader[SIEMExportCommand]
 ```
 
 ## Event-Schema (Mindeststandard)
@@ -52,20 +54,20 @@ Empfohlene Kontextfelder:
 - `metadata.changes` (bei Updates)
 - `ip_address`
 - `user_agent`
-- spaeter: `metadata.request_id` / `metadata.trace_id`
+- offen: `metadata.request_id` / `metadata.trace_id`
 
 ## Integritaetsmodell
 
 ### Aktuell
 
-- Standard-DB-Speicherung ohne formalen Tamper-Proof-Mechanismus.
+- Hash-Kette je Event (`previous_hash` -> `integrity_hash`) im zentralen Write-Gateway.
+- Append-only Enforcement auf `AuditEvent` (Update/Delete blockiert).
 
-### Zielrichtung
+### Offene Härtungen
 
-- Entscheidung zwischen:
-  - append-only DB-Policy
-  - tamper-evident Nachweis (Hash-Kette / Signatur)
-- Integritaetsstrategie muss in `audit-roadmap.md` geplant und per Test/Runbook verifiziert werden.
+- Externer Signaturnachweis (z. B. KMS/Hardware-Key) fuer nicht-abstreitbare Beweiskette.
+- WORM-/Object-Lock-Strategie fuer langzeitstabile Aufbewahrung.
+- Regelmaessige Integritaets-Verifikation als betrieblicher Kontrollpunkt.
 
 ## Verantwortlichkeiten
 
@@ -77,7 +79,7 @@ Empfohlene Kontextfelder:
 ## Nicht-Ziele (Stand heute)
 
 - Keine Garantie, dass alle kritischen Domain-Flows bereits auditiert sind.
-- Kein vollstaendiger SIEM-Export im aktuellen Stand.
+- Kein vollstaendig auditiertes Reader-Audit (wer hat Auditdaten gelesen).
 
 ## Querverweise
 
@@ -85,3 +87,7 @@ Empfohlene Kontextfelder:
 - Security/Privacy: `docs/backend/common/audit-security-privacy.md`
 - Betrieb: `docs/backend/common/audit-operations.md`
 - Roadmap: `docs/backend/common/audit-roadmap.md`
+- Engineering Security: `docs/engineering/security.md`
+- Engineering Backend: `docs/engineering/backend.md`
+- Engineering Testing: `docs/engineering/testing.md`
+- Engineering API: `docs/engineering/api.md`

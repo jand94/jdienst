@@ -3,6 +3,7 @@ from io import StringIO
 from datetime import timedelta
 
 import pytest
+from django.contrib.auth.models import Group, Permission
 from django.core.management import call_command
 from django.utils import timezone
 
@@ -46,4 +47,76 @@ def test_audit_export_siem_streams_json_and_marks_exported():
 
     assert payload["id"] == str(event.pk)
     assert payload["action"] == "security.permission.denied"
+    assert payload["retention_class"] == "security"
     assert event.exported_at is not None
+
+
+@pytest.mark.django_db
+def test_audit_archive_events_supports_retention_policy():
+    security_event = record_audit_event(
+        action="security.permission.denied",
+        target_model="accounts.User",
+        target_id="2",
+        metadata={"source": "api"},
+    )
+    operational_event = record_audit_event(
+        action="accounts.user.updated",
+        target_model="accounts.User",
+        target_id="3",
+        metadata={"source": "api"},
+    )
+    old_timestamp = timezone.now() - timedelta(days=3700)
+    AuditEvent.objects.filter(pk__in=[security_event.pk, operational_event.pk]).update(
+        created_at=old_timestamp,
+    )
+
+    call_command("audit_archive_events", use_retention_policy=True)
+
+    security_event.refresh_from_db()
+    operational_event.refresh_from_db()
+    assert security_event.archived_at is not None
+    assert operational_event.archived_at is not None
+
+
+@pytest.mark.django_db
+def test_audit_verify_integrity_command_creates_verification():
+    record_audit_event(
+        action="auth.login.failed",
+        target_model="accounts.User",
+        target_id="11",
+        metadata={"source": "api"},
+    )
+    output = StringIO()
+
+    call_command("audit_verify_integrity", stdout=output, create_checkpoint=True)
+
+    assert "status=passed" in output.getvalue()
+    assert AuditEvent.objects.filter(action="common.audit_integrity.verified").exists()
+
+
+@pytest.mark.django_db
+def test_audit_setup_roles_assigns_audit_view_permission():
+    output = StringIO()
+    call_command("audit_setup_roles", stdout=output)
+
+    group = Group.objects.get(name="AuditReader")
+    permission = Permission.objects.get(codename="view_auditevent")
+
+    assert permission in group.permissions.all()
+
+
+@pytest.mark.django_db
+def test_audit_health_snapshot_command_returns_json_payload():
+    record_audit_event(
+        action="accounts.user.updated",
+        target_model="accounts.User",
+        target_id="21",
+        metadata={"source": "api"},
+    )
+    output = StringIO()
+
+    call_command("audit_health_snapshot", stdout=output, window_hours=72)
+
+    payload = json.loads(output.getvalue())
+    assert payload["window_hours"] == 72
+    assert "retention_class_counts" in payload

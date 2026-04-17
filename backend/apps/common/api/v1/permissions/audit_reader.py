@@ -1,6 +1,7 @@
 from rest_framework.permissions import BasePermission
 
 from apps.accounts.api.v1.services import log_permission_denied
+from apps.common.api.v1.services import is_audit_reader
 
 
 class IsAuditReader(BasePermission):
@@ -10,7 +11,7 @@ class IsAuditReader(BasePermission):
         user = getattr(request, "user", None)
         if not user or not user.is_authenticated:
             return False
-        if user.is_superuser or user.has_perm("common.view_auditevent"):
+        if is_audit_reader(user):
             return True
 
         log_permission_denied(

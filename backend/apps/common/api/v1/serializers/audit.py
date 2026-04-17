@@ -27,6 +27,10 @@ class AuditEventSerializer(serializers.ModelSerializer):
             "metadata",
             "ip_address",
             "user_agent",
+            "previous_hash",
+            "integrity_hash",
+            "archived_at",
+            "exported_at",
             "created_at",
             "updated_at",
         )
@@ -39,6 +43,10 @@ class AuditEventSerializer(serializers.ModelSerializer):
             "metadata",
             "ip_address",
             "user_agent",
+            "previous_hash",
+            "integrity_hash",
+            "archived_at",
+            "exported_at",
             "created_at",
             "updated_at",
         )

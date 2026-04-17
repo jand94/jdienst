@@ -3,7 +3,7 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema,
 
 audit_event_viewset_schema = extend_schema_view(
     list=extend_schema(
-        tags=["Audit - Events"],
+        tags=["Common - Audit Events"],
         summary="Listet Audit-Events read-only",
         parameters=[
             OpenApiParameter(
@@ -27,7 +27,7 @@ audit_event_viewset_schema = extend_schema_view(
         ],
     ),
     retrieve=extend_schema(
-        tags=["Audit - Events"],
+        tags=["Common - Audit Events"],
         summary="Liefert ein einzelnes Audit-Event read-only",
     ),
 )

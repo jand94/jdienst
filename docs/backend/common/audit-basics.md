@@ -11,7 +11,8 @@ Einheitliche, nachvollziehbare Auditierung fuer alle kuenftigen Domain-Apps.
 - `UUIDPrimaryKeyModel`: UUID als Primary Key.
 - `TimeStampedModel`: `created_at` / `updated_at`.
 - `AuditFieldsModel`: `created_by` / `updated_by` zusaetzlich zu Timestamps.
-- `AuditEvent`: persistente Audit-Events fuer sicherheitsrelevante Aktionen.
+- `AuditEvent`: persistente Audit-Events fuer sicherheitsrelevante Aktionen mit
+  `previous_hash`, `integrity_hash`, `archived_at`, `exported_at`.
 
 ### Services
 
@@ -19,6 +20,7 @@ Einheitliche, nachvollziehbare Auditierung fuer alle kuenftigen Domain-Apps.
   - validiert Pflichtfelder (`action`, `target_model`, `target_id`)
   - sanitisiert Metadaten rekursiv
   - entfernt sensible Keys (z. B. `password`, `token`, `authorization`)
+  - erzeugt Integritaetskette (`previous_hash` -> `integrity_hash`)
 
 ### Event-Konventionen (Pflicht fuer neue Events)
 
@@ -33,13 +35,31 @@ Einheitliche, nachvollziehbare Auditierung fuer alle kuenftigen Domain-Apps.
 ### Serializer
 
 - `AuditReadOnlyFieldsSerializerMixin`: markiert Auditfelder als read-only.
-- `AuditEventSerializer`: Standardserializer fuer `AuditEvent`.
+- `AuditEventSerializer`: read-only Standardserializer fuer `AuditEvent`.
+
+### API / Permissions
+
+- `AuditEventViewSet`: read-only List/Detail API mit Filter/Pagination.
+- `IsAuditReader`: Zugriff nur fuer Superuser oder `common.view_auditevent`.
 
 ### Admin
 
 - `AuditBaseAdmin`: gemeinsame readonly-/ordering-Konvention.
 - `AuditEventAdmin`: Admin-Ansicht fuer AuditEvent-Eintraege.
 - `AdminAuditTrailMixin`: erzeugt automatisch `admin.create`, `admin.update`, `admin.delete`.
+
+### Operations
+
+- `archive_old_events(...)`: markiert alte Events als archiviert (`archived_at`).
+- `build_siem_payload(...)`: standardisierte Exportstruktur.
+- `mark_events_exported(...)`: markiert exportierte Events (`exported_at`).
+- Management Commands:
+  - `python manage.py audit_archive_events --before-days <n>`
+  - `python manage.py audit_archive_events --use-retention-policy`
+  - `python manage.py audit_export_siem --limit <n> [--mark-exported]`
+  - `python manage.py audit_verify_integrity [--create-checkpoint]`
+  - `python manage.py audit_health_snapshot --window-hours <n>`
+  - `python manage.py audit_setup_roles`
 
 ## Beispiel: Auditierbares Domain-Model
 
@@ -102,12 +122,17 @@ Bei einem `admin.update` Event enthaelt `metadata` typischerweise:
 
 ## Grenzen (aktuell)
 
-- Keine tamper-evident/append-only Garantie im aktuellen Datenmodell.
-- Kein out-of-the-box SIEM-Export.
-- Vollstaendige Event-Coverage ausserhalb des Admins muss pro Domain-Service explizit umgesetzt werden.
+- Kein externer, kryptographisch signierter Integritaetsnachweis (z. B. KMS-Signatur/WORM).
+- Kein vollstaendiges Audit-of-audit fuer alle Lesezugriffe.
+- SIEM-Exportpfad ist funktional vorhanden, aber Betriebsreife (SLO/Alerts/Playbooks) ist noch auszubauen.
+- Vollstaendige Event-Coverage ausserhalb des Admins muss pro Domain-Service weiterhin explizit umgesetzt werden.
 
 ## Weiterfuehrend
 
 - Architektur und Vertrauensmodell: `docs/backend/common/audit-architecture.md`
 - Security/Privacy-Regeln: `docs/backend/common/audit-security-privacy.md`
 - Betrieb und Retention: `docs/backend/common/audit-operations.md`
+- Engineering Security: `docs/engineering/security.md`
+- Engineering Backend: `docs/engineering/backend.md`
+- Engineering Testing: `docs/engineering/testing.md`
+- Engineering API: `docs/engineering/api.md`

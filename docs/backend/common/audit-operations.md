@@ -11,10 +11,12 @@ Retention, Archivierung, Monitoring und Incident-/Forensik-Ablauf.
 - kritische Ereignisse sind zeitnah auffindbar.
 - Integritaets- und Vollstaendigkeitsrisiken werden frueh erkannt.
 
-## Retention-Strategie (Zielbild)
+## Retention-Strategie (aktueller Stand + Zielbild)
 
-- Definiere Event-Klassen mit Aufbewahrungsfristen (z. B. Security-kritisch, operativ, technisch).
-- Trenne aktive Datenhaltung von Archivdaten.
+- Aktuell: technische Archivierungsmarkierung via `archived_at`.
+- Ziel: Event-Klassen mit verbindlichen Aufbewahrungsfristen
+  (z. B. security-kritisch, operativ, technisch).
+- Ziel: Trennung aktiver Datenhaltung und revisionsfester Archivablage.
 - Vor Loeschung: fachliche und regulatorische Freigabe dokumentieren.
 
 Hinweis: Konkrete Fristen sind organisationsabhaengig und muessen ausserhalb dieses Dokuments
@@ -22,8 +24,10 @@ final freigegeben werden.
 
 ## Archivierung
 
-- Regelbasierter Export alter Auditdaten in kostenguensigeren Storage.
-- Sicherstellen, dass archivierte Daten weiterhin nachweisbar und lesbar sind.
+- Implementiert: `python manage.py audit_archive_events --before-days <n>`.
+- Implementiert: `python manage.py audit_archive_events --use-retention-policy`.
+- Aktuell wird per Zeitgrenze `archived_at` gesetzt (logische Archivierung).
+- Offen: physische Auslagerung in kostenguensigen/revisionsfesten Storage.
 - Restore-Prozess fuer Stichproben und Incident-Untersuchungen dokumentieren.
 
 ## Monitoring und Alerting
@@ -33,6 +37,7 @@ Empfohlene Kennzahlen:
 - Audit-Write-Fehlerrate
 - Event-Volumen pro Quelle (`metadata.source`)
 - Latenz zwischen Ereignis und Persistierung
+- Anteil nicht exportierter Events (`exported_at IS NULL`)
 - ungewoehnliche Muster (z. B. viele `admin.delete` in kurzer Zeit)
 
 Empfohlene Alerts:
@@ -50,15 +55,27 @@ Empfohlene Alerts:
 
 ## SIEM-Integration (Zielbild)
 
-- Definiere standardisiertes Exportformat und Mindestfelder.
+- Implementiert: `python manage.py audit_export_siem --limit <n> [--mark-exported]`
+  mit JSONL-Ausgabe und Feldern inkl. `integrity_hash`/`previous_hash`.
+- Implementiert: `python manage.py audit_health_snapshot --window-hours <n>` fuer Monitoring-Daten.
+- Implementiert: `python manage.py audit_verify_integrity [--create-checkpoint]` fuer periodische Verifikation.
 - Stelle sicher, dass Exporte keine sensiblen Rohdaten enthalten.
 - Fuehre Integrations- und Wiederanlauftests regelmaessig durch.
+- Offen: produktiver Transfer in SIEM-Pipeline inkl. Fehlerhandling/SLO.
 
 ## Verifikation
 
 - Regelmaessige Testlaeufe fuer Export-/Archivpfade.
 - Stichproben zur Datenlesbarkeit archivierter Events.
 - Monitoring-Checks als Bestandteil operativer Readiness.
+
+## Mindest-Evidenzkatalog (Enterprise-Restluecke)
+
+- Nachweis monatlicher Archiv-/Export-Job-Laeufe.
+- Nachweis wiederkehrender Restore-Stichproben (inkl. Ergebnisprotokoll).
+- Nachweis definierter Alert-Schwellen und Reaktionszeiten.
+- Nachweis Security-Review bei Aenderungen am Export-/Retention-Pfad.
+- Konkretes Artefakt-Template: `docs/backend/common/audit-evidence-checklist.md`
 
 ## Querverweise
 
@@ -67,3 +84,5 @@ Empfohlene Alerts:
 - Roadmap: `docs/backend/common/audit-roadmap.md`
 - Engineering Backend: `docs/engineering/backend.md`
 - Engineering Security: `docs/engineering/security.md`
+- Engineering Testing: `docs/engineering/testing.md`
+- Engineering API: `docs/engineering/api.md`

@@ -49,3 +49,27 @@ def deactivate_user(*, actor: User, source: str, reason: str = "self-service") -
             metadata={"source": source, "reason": reason},
         )
     return actor
+
+
+def log_user_list_access(*, actor: User, source: str) -> None:
+    record_audit_event(
+        action="accounts.user.listed",
+        target_model="accounts.User",
+        target_id=str(actor.pk),
+        actor=actor,
+        metadata={"source": source},
+    )
+
+
+def log_user_read_access(*, actor: User, target: User, source: str, scope: str) -> None:
+    record_audit_event(
+        action="accounts.user.read",
+        target_model="accounts.User",
+        target_id=str(target.pk),
+        actor=actor,
+        metadata={
+            "source": source,
+            "scope": scope,
+            "is_self": actor.pk == target.pk,
+        },
+    )

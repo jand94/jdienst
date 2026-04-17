@@ -1,4 +1,5 @@
 import pytest
+from django.contrib.auth.models import Group
 from django.contrib.auth.models import Permission
 from django.urls import reverse
 from rest_framework.test import APIClient
@@ -53,3 +54,36 @@ def test_audit_event_api_lists_and_filters_for_auditor_role():
     assert response.status_code == 200
     assert response.data["count"] == 1
     assert response.data["results"][0]["id"] == str(matching.pk)
+    assert AuditEvent.objects.filter(
+        action="common.audit_event.read",
+        target_model="common.AuditEvent",
+        target_id="collection",
+        actor=auditor,
+    ).exists()
+
+
+@pytest.mark.django_db
+def test_audit_event_api_allows_group_based_auditor_role():
+    auditor = UserFactory(is_staff=True)
+    role = Group.objects.create(name="AuditReader")
+    auditor.groups.add(role)
+    role.permissions.add(Permission.objects.get(codename="view_auditevent"))
+    event = AuditEvent.objects.create(
+        action="auth.login.failed",
+        target_model="accounts.User",
+        target_id="7",
+        metadata={"source": "api"},
+    )
+    client = APIClient()
+    client.force_authenticate(user=auditor)
+
+    response = client.get(reverse("common-audit-event-detail", kwargs={"pk": event.pk}))
+
+    assert response.status_code == 200
+    assert response.data["id"] == str(event.pk)
+    assert AuditEvent.objects.filter(
+        action="common.audit_event.read",
+        target_model="common.AuditEvent",
+        target_id=str(event.pk),
+        actor=auditor,
+    ).exists()

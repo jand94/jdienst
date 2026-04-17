@@ -8,28 +8,30 @@ Es dient als Entscheidungsgrundlage fuer Architektur, Betrieb und Roadmap.
 ## Ist-Stand (aktuell umgesetzt)
 
 - Persistentes Audit-Event-Modell mit Kernfeldern (`action`, `target_model`, `target_id`, `actor`, `metadata`, `ip_address`, `user_agent`).
+- Integritaetsfelder (`previous_hash`, `integrity_hash`) und append-only Enforcement auf Model-Ebene.
 - Service `record_audit_event(...)` mit Pflichtfeld-Validierung und Metadaten-Sanitization.
 - Admin-Hooks fuer `admin.create`, `admin.update`, `admin.delete` inklusive Feld-Diffs bei Updates.
-- Sichtbarkeit von Audit-Events im Django Admin.
+- Read-only Audit API mit Permission-Gate (`common.view_auditevent`) und OpenAPI-Dokumentation.
+- Operations-Bausteine fuer Archivierung und SIEM-Export (inkl. `archived_at` / `exported_at`).
 
 ## Soll-Stand (Enterprise, SOC2/ISO-orientiert)
 
-- Nachvollziehbarkeit sicherheitsrelevanter Ereignisse nicht nur im Admin, sondern in allen kritischen Service-Flows.
-- Integritaetsstrategie fuer Auditdaten (tamper-evident/append-only Entscheidung und Umsetzungspfad).
+- Nachvollziehbarkeit sicherheitsrelevanter Ereignisse in allen kritischen Service-Flows.
+- Integritaet mit internem tamper-evident Nachweis plus externer Härtung.
 - Rollen- und Zugriffsschutz fuer Audit-Lesepfade (Auditor-Prinzip, Least-Privilege, Audit-of-audit).
-- Betriebsfaehigkeit mit Retention, Archivierung, Monitoring, Incident-/Forensik-Prozess.
-- Optionaler API-/SIEM-Zugriff mit dokumentiertem OpenAPI-Vertrag und klaren Permissions.
+- Betriebsfaehigkeit mit verbindlicher Retention-Governance, Monitoring, Incident-/Forensik-Prozess.
+- Stabiler SIEM-Betriebsprozess mit Evidenzen (nicht nur Exportmechanik).
 
 ## Gap-Matrix
 
-| Bereich | Ist | Soll | Prioritaet |
+| Bereich | Status | Offene Luecke | Prioritaet |
 |---|---|---|---|
-| Event-Coverage | Schwerpunkt Admin-Aenderungen | Kritische API-/Auth-/Permission-Flows auditieren | Hoch |
-| Integritaet | Standard-DB-Objekte ohne Immutability-Garantie | Tamper-evident oder append-only Konzept | Hoch |
-| Zugriffskontrolle | Primär Admin-Zugriff | Auditor-Rollen + Objekt-/Use-Case-Policy | Hoch |
-| Forensik-Kontext | Basisfelder vorhanden | Korrelation (request/trace), erweiterte Kontextstandards | Mittel |
-| Betrieb | Keine formalen Retention-/Archivregeln | Definierte Aufbewahrung, Export, Monitoring | Mittel |
-| Externe Nachweisbarkeit | Kein standardisierter SIEM-Pfad | Definierter Export und Betriebsmetriken | Mittel |
+| Event-Coverage | Teilweise umgesetzt | Kritische Domain-Flows app-weit konsistent auditiert | Hoch |
+| Integritaet | Weit umgesetzt | Externer Signatur-/WORM-Nachweis, periodische Verifikation | Mittel |
+| Zugriffskontrolle | Teilweise umgesetzt | Auditor-Rollenmodell + Audit-of-audit fuer Lesezugriffe | Hoch |
+| Forensik-Kontext | Teilweise umgesetzt | Request-/Trace-Korrelation als Pflichtmetadaten | Mittel |
+| Betrieb | Teilweise umgesetzt | Verbindliche Retention-Klassen, Restore-Evidenz, Alert-SLOs | Hoch |
+| Externe Nachweisbarkeit | Basis umgesetzt | SIEM-Prozessreife inkl. Runbooks/Kontrollnachweise | Mittel |
 
 ## Verbindliche Leitplanken aus `docs/engineering`
 
@@ -42,6 +44,11 @@ Es dient als Entscheidungsgrundlage fuer Architektur, Betrieb und Roadmap.
 
 Dieses Dokument beschreibt Architektur- und Governance-Luecken.
 Die technische Umsetzung erfolgt phasenweise gemaess `audit-roadmap.md`.
+
+## Kurzfazit
+
+Die Basis ist enterprise-tauglich vorbereitet (Integritaetskette, append-only, read-only API, Export/Archiv-Bausteine).
+Der verbleibende Abstand zum Endzustand liegt vor allem in Governance, Betriebsreife und flächiger Event-Coverage.
 
 ## Querverweise
 

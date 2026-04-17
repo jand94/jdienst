@@ -26,6 +26,11 @@ def test_list_users_returns_paginated_results_for_staff(api_client):
     assert response.status_code == 200
     assert "results" in response.data
     assert response.data["count"] >= 4
+    assert AuditEvent.objects.filter(
+        action="accounts.user.listed",
+        target_model="accounts.User",
+        target_id=str(staff_user.pk),
+    ).exists()
 
 
 @pytest.mark.django_db
@@ -38,6 +43,12 @@ def test_me_endpoint_returns_authenticated_user(api_client):
     assert response.status_code == 200
     assert response.data["id"] == user.id
     assert response.data["username"] == user.username
+    assert AuditEvent.objects.filter(
+        action="accounts.user.read",
+        target_model="accounts.User",
+        target_id=str(user.pk),
+        metadata__scope="self",
+    ).exists()
 
 
 @pytest.mark.django_db
@@ -77,3 +88,21 @@ def test_retrieve_foreign_user_is_forbidden_and_audited(api_client):
         target_id=str(actor.pk),
     ).first()
     assert denied_event is not None
+
+
+@pytest.mark.django_db
+def test_retrieve_user_logs_read_access_for_staff(api_client):
+    staff = UserFactory(is_staff=True)
+    target_user = UserFactory()
+    api_client.force_authenticate(user=staff)
+
+    response = api_client.get(reverse("accounts-user-detail", kwargs={"pk": target_user.pk}))
+
+    assert response.status_code == 200
+    assert AuditEvent.objects.filter(
+        action="accounts.user.read",
+        target_model="accounts.User",
+        target_id=str(target_user.pk),
+        actor=staff,
+        metadata__scope="detail",
+    ).exists()
