@@ -30,4 +30,15 @@ class AuditEventSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "created_at", "updated_at")
+        read_only_fields = (
+            "id",
+            "actor",
+            "action",
+            "target_model",
+            "target_id",
+            "metadata",
+            "ip_address",
+            "user_agent",
+            "created_at",
+            "updated_at",
+        )

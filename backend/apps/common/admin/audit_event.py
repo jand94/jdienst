@@ -1,4 +1,7 @@
+import json
+
 from django.contrib import admin
+from django.utils.html import format_html
 
 from apps.common.admin.base_admin import AuditBaseAdmin
 from apps.common.models import AuditEvent
@@ -14,7 +17,12 @@ class AuditEventAdmin(AuditBaseAdmin):
         "target_model",
         "target_id",
         "actor",
-        "metadata",
+        "pretty_metadata",
         "ip_address",
         "user_agent",
     )
+
+    @admin.display(description="Was geändert wurde")
+    def pretty_metadata(self, obj: AuditEvent):
+        formatted = json.dumps(obj.metadata, indent=2, ensure_ascii=False, sort_keys=True)
+        return format_html("<pre>{}</pre>", formatted)
