@@ -107,7 +107,8 @@ dump.rdb
 # Modelle sind lokal und groß
 .ollama/
 ollama-data/
-models/
+/.ollama/models/
+/ollama-data/models/
 
 # =========================
 # CI / Build Artifacts

@@ -60,7 +60,9 @@ THIRD_PARTY_APPS = [
 
 INTERNAL_APPS: list[str] = [
     # Domain apps are added here as they are introduced.
-]
+
+    "apps.accounts",
+    "apps.common",]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + INTERNAL_APPS
 
@@ -165,3 +167,5 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "OpenAPI schema for the jdienst backend.",
     "VERSION": "1.0.0",
 }
+
+AUTH_USER_MODEL = "accounts.User"
