@@ -19,6 +19,7 @@ Ergänzt `CLAUDE.md`. Pflichtstruktur und Dateinamen bleiben in `CLAUDE.md` (Non
 - Benennung zwischen Serializer, View, Route und Schema-Modul bleibt konsistent.
 - Custom Actions werden explizit dokumentiert.
 - Collection-Endpunkte dokumentieren Pagination, Filter, Sortierung und Auth.
+- Für Audit-bezogene Endpunkte sind die kanonischen Schnittstellen aus `docs/backend/common/audit-interfaces.md` zu verwenden und zu dokumentieren.
 
 ---
 
@@ -84,6 +85,7 @@ Vor Abschluss einer API-Änderung:
 - Erfolgs- und Fehlerfälle sind dokumentiert
 - Auth-/Permission-Verhalten ist beschrieben
 - API-Tests für Statuscodes, Struktur und Fehlerfälle sind aktualisiert
+- bei Audit- oder Operations-Endpunkten ist die Dokumentation mit `docs/backend/common/audit-interfaces.md` und `docs/backend/common/audit-basics.md` konsistent
 - bei Breaking-Änderungen ist der Rollout dokumentiert
 
 ---
@@ -94,6 +96,9 @@ Vor Abschluss einer API-Änderung:
 - Testanforderungen: `testing.md`
 - CI-Durchsetzung: `ci.md`
 - Sicherheitsregeln: `security.md`
+- Audit-Bausteine (`apps/common`): `../backend/common/README.md`
+- Audit-Basics und Event-Konventionen: `../backend/common/audit-basics.md`
+- Audit-Schnittstellen (Commands/API): `../backend/common/audit-interfaces.md`
 
 ---
 

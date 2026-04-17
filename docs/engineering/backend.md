@@ -123,10 +123,19 @@ Klar trennen:
 
 ## Auditierbarkeit & Observability
 
-- Wichtige Zustandsänderungen nachvollziehbar machen
-- Strukturierte Logs bevorzugen
-- Fehler müssen reproduzierbar sein
-- Kritische Flows observierbar machen
+- Wichtige Zustandsänderungen sind verpflichtend über die Audit-Bausteine aus `backend/apps/common` nachvollziehbar zu protokollieren.
+- Audit-Events für fachlich oder sicherheitsrelevante Mutationen werden im Service-Layer über `apps.common.api.v1.services.audit_service.record_audit_event(...)` erzeugt.
+- Event-Konventionen aus `docs/backend/common/audit-basics.md` sind einzuhalten (`action`, `target_model`, `target_id`, `metadata.source`).
+- Strukturierte Logs ergänzen Audit-Events, ersetzen sie aber nicht.
+- Fehler müssen reproduzierbar sein.
+- Kritische Flows müssen observierbar sein.
+
+### Verbindliche Audit-Implementierung
+
+- Eigene Audit-Schattenlösungen in Domain-Apps sind nicht zulässig, wenn äquivalente Funktionalität in `apps/common` vorhanden ist.
+- Für Admin-Mutationen sind die bereitgestellten Admin-Audit-Bausteine (`AuditBaseAdmin`, `AdminAuditTrailMixin`) zu verwenden.
+- Bei neuen Write-Flows gilt: ohne Audit-Event keine vollständige Implementierung (siehe `testing.md` und `ci.md`).
+- Für operative Audit-Pfade (Archivierung/Export/Integrität) sind die Schnittstellen in `docs/backend/common/audit-interfaces.md` maßgeblich.
 
 ---
 
@@ -156,3 +165,5 @@ Klar trennen:
 - Fat Models
 - Implizite Permissions
 - Unstrukturierte Query-Logik
+- Write-Services ohne Audit-Event über `apps/common`
+- Ad-hoc Audit-Implementierungen außerhalb von `apps/common` ohne begründete Ausnahme

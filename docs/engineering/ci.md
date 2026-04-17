@@ -62,6 +62,7 @@ CI setzt diese Kriterien technisch durch. Für einen abgeschlossenen PR/Merge gi
 - Typprüfungen sind erfolgreich, falls im Projekt aktiviert
 - sicherheitsrelevante Checks sind erfolgreich, falls im Projekt aktiviert
 - keine technischen Prüfungen melden Verstöße gegen projektweite Non-negotiables
+- Audit-Policy-Checks für Backend-Write-Änderungen sind erfolgreich
 
 ---
 
@@ -171,6 +172,16 @@ Regeln, die im Engineering-System als Non-negotiable definiert sind, sollen nach
 
 ---
 
+## Audit-Policy in CI (verbindlich)
+
+- Änderungen an Backend-Write-Flows müssen einen blockierenden CI-Nachweis für Audit-Nutzung über `apps/common` enthalten.
+- Mindestens ein verpflichtender Status-Check muss Audit-Coverage in Tests validieren (z. B. relevante `pytest`-Suite mit Audit-Assertions).
+- Fehlende Audit-Testabdeckung bei neuen/angepassten Write-Services ist merge-blockierend.
+- Reine Dokumentationsänderungen dürfen fehlende technische Audit-Checks nicht kompensieren.
+- Optionaler Guard-Check (empfohlen): statische Heuristik, die geänderte Write-Services ohne passende Audit-Testdatei oder ohne Audit-Assertion markiert.
+
+---
+
 ## API und Schema in CI
 
 - Wenn OpenAPI-Schema Teil des Qualitätsvertrags ist, muss die Pipeline dessen Konsistenz prüfen.
@@ -210,3 +221,4 @@ Regeln, die im Engineering-System als Non-negotiable definiert sind, sollen nach
 - stillschweigendes Deaktivieren relevanter Checks
 - CI-Umgehung durch bloße Dokumentationsänderungen ohne technische Absicherung
 - Pipeline-Schritte, die nicht reproduzierbar oder nicht erklärbar sind
+- Backend-Write-Änderungen ohne blockierenden Audit-Policy-Check

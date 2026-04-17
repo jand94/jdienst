@@ -32,3 +32,11 @@ Optionale Abschnitte:
 - "Soll"-Aussagen enthalten, wo sinnvoll, einen Verweis auf den aktuellen Ist-Zustand.
 - Wiederholungen über mehrere Dokumente werden vermieden; stattdessen verlinken.
 - Sicherheits-, Test- und CI-Auswirkungen werden bei relevanten Themen explizit benannt.
+
+## Kanonische Audit-Referenzen
+
+Für Regeln mit Audit-Bezug ist `apps/common` die verbindliche Referenz. Nutze dafür:
+
+- `../backend/common/README.md`
+- `../backend/common/audit-basics.md`
+- `../backend/common/audit-interfaces.md`

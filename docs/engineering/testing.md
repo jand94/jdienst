@@ -28,6 +28,7 @@ Tests müssen erstellt oder angepasst werden bei:
 - neuen API-Endpunkten
 - Änderungen an Request-/Response-Strukturen
 - Änderungen an Permissions oder Security-Verhalten
+- Änderungen an Write-Services oder sonstigen Mutationspfaden
 - Änderungen an Validierung
 - Änderungen an LLM-Integration
 - Bugfixes (inkl. Reproduktions-Test)
@@ -48,6 +49,8 @@ Tests müssen erstellt oder angepasst werden bei:
 | Bugfix | Pflicht (Reproduktion + Guard) | Pflicht, wenn Fehler integrationsnah war | Optional |
 | Komplexes UI-Verhalten | Pflicht (Komponenten-/Hook-Logik) | Optional | Pflicht bei kritischem Nutzerfluss |
 
+Für alle Backend-Write-Pfade in den ersten fünf Zeilen der Matrix gilt zusätzlich: Audit-Event-Erzeugung über `apps/common` muss mitgetestet werden.
+
 ---
 
 ## Was testen?
@@ -63,6 +66,7 @@ Priorisiert:
   - Response-Strukturen
   - Fehlerfälle
 - Service-Logik und Workflows
+- Audit-Event-Coverage für sicherheits- und fachkritische Mutationen
 - Integrationen mit externer Infrastruktur
 - Komplexes UI-Verhalten
 
@@ -111,6 +115,20 @@ Priorisiert:
   - Permission-Verhalten
 
 - API-Tests müssen mit dem OpenAPI-Schema konsistent sein (`api.md`).
+
+---
+
+## Audit-Tests (verbindlich)
+
+- Bei neuen oder geänderten Backend-Mutationspfaden müssen Tests die Erzeugung von Audit-Events über `apps.common.api.v1.services.audit_service.record_audit_event(...)` absichern.
+- Mindestens folgende Eventfelder sind zu prüfen:
+  - `action`
+  - `target_model`
+  - `target_id`
+  - `metadata.source`
+- Für sicherheitsrelevante Flows ist zusätzlich zu prüfen, dass sensible Metadaten sanitisiert sind (keine Tokens/Passwörter/Secrets im Event).
+- Audit-Tests sind als Unit- und/oder Integrationstests umzusetzen; reine Happy-Path-Tests ohne Audit-Assertion sind nicht ausreichend.
+- Ohne Audit-Testabdeckung gilt eine Write-Änderung als unvollständig.
 
 ---
 
@@ -184,6 +202,7 @@ Vor Abschluss einer Änderung:
 - Fehler-, Rand- und Permission-Fälle sind berücksichtigt
 - API-Änderungen sind gegen Schema und Verhalten getestet
 - externe Abhängigkeiten sind kontrolliert gemockt oder gezielt integriert
+- Audit-Coverage für betroffene Mutationspfade ist über Tests nachgewiesen
 
 ---
 

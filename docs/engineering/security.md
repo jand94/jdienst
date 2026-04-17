@@ -82,6 +82,10 @@ Ergänzt `CLAUDE.md`. LLM-spezifische Grenzen zusätzlich in `llm.md`.
 
 - Sicherheitsrelevante Aktionen müssen nachvollziehbar sein.
 - Logs müssen ausreichend Kontext enthalten, ohne sensible Daten zu leaken.
+- Sicherheits- und fachkritische Mutationen im Backend müssen über die Audit-Bausteine aus `backend/apps/common` erfasst werden.
+- Für Service-Write-Flows ist `apps.common.api.v1.services.audit_service.record_audit_event(...)` der verpflichtende Standardpfad.
+- Audit-Metadaten sind vor Persistierung zu sanitizen; die Konventionen aus `docs/backend/common/audit-basics.md` sind einzuhalten.
+- Eigene Audit-Mechanismen außerhalb von `apps/common` sind nur als dokumentierte Ausnahme zulässig.
 
 ### Beispiele für Audit-relevante Events
 
@@ -173,6 +177,7 @@ Typische Risiken aktiv vermeiden:
 - Fehlende Permissions
 - Hardcodierte Secrets
 - Sensible Daten in Logs
+- Sicherheitsrelevante Mutationen ohne Audit-Event über `apps/common`
 - Offene CORS-Konfiguration
 - Stacktraces im Response
 - Vertrauen auf LLM-Output
@@ -188,6 +193,8 @@ Vor Abschluss sicherheitsrelevanter Änderungen:
 - Secrets und sensible Daten werden nicht offengelegt
 - Fehlerausgaben sind sicher und kontrolliert
 - relevante Abuse-, CORS- und Session-Risiken sind bewertet
+- Audit-Coverage für sicherheitsrelevante Mutationen ist über `apps/common` nachweisbar
+- Audit-Tests für Event-Erzeugung und Sanitization sind vorhanden (siehe `testing.md`)
 
 ---
 
