@@ -44,11 +44,17 @@ def run_platform_check(*, window_hours: int = 24) -> dict:
     settings_values = get_platform_settings()
     snapshot = collect_platform_health_snapshot(window_hours=window_hours)
     checks = []
+    audit = snapshot["audit"]
+    tenant_snapshot = collect_tenant_consistency_snapshot()
+    active_tenant_count = Tenant.objects.filter(status=Tenant.STATUS_ACTIVE).count()
     checks.append(
         {
             "name": "audit_verification_fresh",
-            "passed": bool(snapshot["audit"]["integrity_verification"]["is_fresh"]),
-            "details": snapshot["audit"]["integrity_verification"],
+            "passed": bool(audit["integrity_verification"]["is_fresh"]) or int(audit["events_total"]) == 0,
+            "details": {
+                **audit["integrity_verification"],
+                "events_total": audit["events_total"],
+            },
         }
     )
     outbox = snapshot["outbox"]
@@ -69,16 +75,17 @@ def run_platform_check(*, window_hours: int = 24) -> dict:
     checks.append(
         {
             "name": "tenant_membership_consistency",
-            "passed": collect_tenant_consistency_snapshot()["passed"],
-            "details": collect_tenant_consistency_snapshot(),
+            "passed": tenant_snapshot["passed"],
+            "details": tenant_snapshot,
         }
     )
     checks.append(
         {
             "name": "tenant_active_available",
-            "passed": Tenant.objects.filter(status=Tenant.STATUS_ACTIVE).exists(),
+            "passed": active_tenant_count > 0 or tenant_snapshot["tenant_count"] == 0,
             "details": {
-                "active_tenant_count": Tenant.objects.filter(status=Tenant.STATUS_ACTIVE).count(),
+                "active_tenant_count": active_tenant_count,
+                "tenant_count": tenant_snapshot["tenant_count"],
             },
         }
     )

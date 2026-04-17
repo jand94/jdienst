@@ -144,6 +144,7 @@ jobs:
 
       - name: Run platform compliance check
         run: |
+          python manage.py migrate --noinput
           python manage.py common_platform_check --window-hours 24 --fail-on-error
           python manage.py tenant_consistency_check --fail-on-error
 

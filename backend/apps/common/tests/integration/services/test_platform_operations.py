@@ -40,6 +40,12 @@ def test_common_platform_slo_report_returns_summary():
 @pytest.mark.django_db
 def test_common_platform_check_can_fail_on_error_without_fresh_integrity():
     output = StringIO()
+    record_audit_event(
+        action="security.permission.denied",
+        target_model="accounts.User",
+        target_id="1",
+        metadata={"source": "api"},
+    )
 
     with pytest.raises(CommandError):
         call_command("common_platform_check", stdout=output, fail_on_error=True)
