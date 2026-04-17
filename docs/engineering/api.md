@@ -40,6 +40,14 @@ Ergänzt `CLAUDE.md`. Pflichtstruktur und Dateinamen bleiben in `CLAUDE.md` (Non
 - Große oder wiederholte Schema-Blöcke nicht dauerhaft inline in Views halten; bei Bedarf auslagern.
 - Pagination, Filter, Sortierung und Auth für Collection-Endpunkte beschreiben.
 
+### Kanonische Doku-Endpoints
+
+- OpenAPI-Schema (JSON/YAML je Konfiguration): `/api/schema/`
+- Swagger UI: `/api/docs/swagger/`
+- ReDoc UI: `/api/docs/redoc/`
+
+Diese Endpunkte sind der verbindliche Einstieg für den API-Vertrag im laufenden System.
+
 ---
 
 ## OpenAPI-Tags (verbindliches Format)

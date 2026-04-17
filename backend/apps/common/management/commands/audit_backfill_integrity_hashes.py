@@ -1,8 +1,9 @@
 import json
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from apps.common.api.v1.services import backfill_integrity_hashes
+from apps.common.exceptions import InvalidAuditEvent
 
 
 class Command(BaseCommand):
@@ -14,9 +15,12 @@ class Command(BaseCommand):
         parser.add_argument("--source", type=str, default="management-command")
 
     def handle(self, *args, **options):
-        result = backfill_integrity_hashes(
-            dry_run=options["dry_run"],
-            limit=options["limit"] or None,
-            source=options["source"],
-        )
+        try:
+            result = backfill_integrity_hashes(
+                dry_run=options["dry_run"],
+                limit=options["limit"] or None,
+                source=options["source"],
+            )
+        except InvalidAuditEvent as exc:
+            raise CommandError(str(exc)) from exc
         self.stdout.write(json.dumps(result, sort_keys=True))

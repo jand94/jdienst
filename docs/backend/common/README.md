@@ -60,6 +60,7 @@ gemäss den Engineering-Regeln implementiert werden.
 ## Weiterfuehrende Dokumente
 
 - Basisnutzung und Event-Konventionen: `docs/backend/common/audit-basics.md`
+- Schnittstellen-Referenz (Commands + API): `docs/backend/common/audit-interfaces.md`
 - Ist-vs-Soll Gap-Analyse: `docs/backend/common/audit-gap-analysis.md`
 - Enterprise-Zielarchitektur: `docs/backend/common/audit-architecture.md`
 - Security/Privacy-Standard fuer Auditdaten: `docs/backend/common/audit-security-privacy.md`

@@ -2,13 +2,18 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+from collections.abc import Iterable
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import QuerySet, Subquery
 from django.utils import timezone
 
 from apps.common.api.v1.services.audit_service import _calculate_integrity_hash, record_audit_event
+from apps.common.exceptions import InvalidAuditEvent
 from apps.common.models import AuditEvent, AuditIntegrityCheckpoint, AuditIntegrityVerification
+
+AUDIT_INTEGRITY_MAX_LIMIT = 5000
 
 
 def _sign_hash(anchor_hash: str) -> str:
@@ -35,7 +40,27 @@ def create_integrity_checkpoint(*, metadata: dict | None = None) -> AuditIntegri
     return checkpoint
 
 
-def _verify_chain(*, events: list[AuditEvent], initial_previous_hash: str = "") -> tuple[bool, dict]:
+def _normalize_limit(limit: int | None) -> int | None:
+    if limit is None:
+        return None
+    if limit < 1:
+        raise InvalidAuditEvent("limit must be greater than 0.")
+    if limit > AUDIT_INTEGRITY_MAX_LIMIT:
+        raise InvalidAuditEvent(
+            f"limit must not exceed {AUDIT_INTEGRITY_MAX_LIMIT}.",
+        )
+    return limit
+
+
+def _build_chain_queryset(*, limit: int | None) -> QuerySet[AuditEvent]:
+    queryset = AuditEvent.objects.order_by("created_at", "id")
+    if not limit:
+        return queryset
+    latest_ids = AuditEvent.objects.order_by("-created_at", "-id").values("id")[:limit]
+    return queryset.filter(id__in=Subquery(latest_ids))
+
+
+def _verify_chain(*, events: Iterable[AuditEvent], initial_previous_hash: str = "") -> tuple[bool, dict]:
     previous_hash = initial_previous_hash
     checked_events = 0
     mismatch: dict | None = None
@@ -86,21 +111,17 @@ def verify_integrity_chain(
     create_checkpoint: bool = False,
     source: str = "system",
 ) -> AuditIntegrityVerification:
-    queryset = AuditEvent.objects.order_by("created_at", "id")
-    if limit:
-        event_ids = list(queryset.values_list("id", flat=True))
-        event_ids = event_ids[-limit:]
-        queryset = queryset.filter(id__in=event_ids).order_by("created_at", "id")
-    events = list(queryset)
-
-    initial_previous_hash = events[0].previous_hash if limit and events else ""
+    normalized_limit = _normalize_limit(limit)
+    queryset = _build_chain_queryset(limit=normalized_limit)
+    first_event = queryset.first() if normalized_limit else None
+    initial_previous_hash = first_event.previous_hash if first_event else ""
     is_valid, details = _verify_chain(
-        events=events,
+        events=queryset.iterator(chunk_size=1000),
         initial_previous_hash=initial_previous_hash,
     )
     checkpoint = None
     with transaction.atomic():
-        if is_valid and create_checkpoint and events:
+        if is_valid and create_checkpoint and details["checked_events"] > 0:
             checkpoint = create_integrity_checkpoint(
                 metadata={
                     "source": source,
@@ -154,13 +175,10 @@ def backfill_integrity_hashes(
     limit: int | None = None,
     source: str = "management-command",
 ) -> dict:
-    queryset = AuditEvent.objects.order_by("created_at", "id")
-    if limit:
-        event_ids = list(queryset.values_list("id", flat=True))
-        event_ids = event_ids[-limit:]
-        queryset = queryset.filter(id__in=event_ids).order_by("created_at", "id")
-    events = list(queryset)
-    if not events:
+    normalized_limit = _normalize_limit(limit)
+    queryset = _build_chain_queryset(limit=normalized_limit)
+    first_event = queryset.first() if normalized_limit else None
+    if normalized_limit and first_event is None:
         return {
             "checked_events": 0,
             "corrected_events": 0,
@@ -168,10 +186,12 @@ def backfill_integrity_hashes(
             "corrected_event_ids": [],
         }
 
-    previous_hash = events[0].previous_hash if limit else ""
+    previous_hash = first_event.previous_hash if first_event else ""
     corrected_event_ids: list[str] = []
+    checked_events = 0
 
-    for event in events:
+    for event in queryset.iterator(chunk_size=1000):
+        checked_events += 1
         expected_integrity_hash = _calculate_integrity_hash(
             action=event.action,
             target_model=event.target_model,
@@ -204,12 +224,12 @@ def backfill_integrity_hashes(
             metadata={
                 "source": source,
                 "corrected_events": len(corrected_event_ids),
-                "limit": limit,
+                "limit": normalized_limit,
             },
         )
 
     return {
-        "checked_events": len(events),
+        "checked_events": checked_events,
         "corrected_events": len(corrected_event_ids),
         "dry_run": dry_run,
         "corrected_event_ids": corrected_event_ids,

@@ -7,6 +7,7 @@ from django.contrib.auth.models import Group, Permission
 from django.core.management import call_command
 from django.utils import timezone
 
+from apps.common.api.v1.services import collect_audit_health_snapshot
 from apps.common.api.v1.services.audit_service import record_audit_event
 from apps.common.models import AuditEvent
 
@@ -139,3 +140,36 @@ def test_audit_backfill_integrity_hashes_command_repairs_legacy_events():
     event.refresh_from_db()
     assert result["corrected_events"] >= 1
     assert event.integrity_hash != ""
+
+
+@pytest.mark.django_db
+def test_collect_audit_health_snapshot_returns_consistent_aggregates():
+    record_audit_event(
+        action="security.permission.denied",
+        target_model="accounts.User",
+        target_id="91",
+        metadata={"source": "api"},
+    )
+    record_audit_event(
+        action="accounts.user.updated",
+        target_model="accounts.User",
+        target_id="92",
+        metadata={"source": "api"},
+    )
+    record_audit_event(
+        action="common.audit_integrity.verified",
+        target_model="common.AuditIntegrityVerification",
+        target_id="93",
+        metadata={"source": "system"},
+    )
+    AuditEvent.objects.filter(target_id="92").update(exported_at=timezone.now())
+
+    snapshot = collect_audit_health_snapshot(window_hours=24)
+
+    assert snapshot["events_total"] == 3
+    assert snapshot["events_without_actor"] == 3
+    assert snapshot["events_not_exported"] == 2
+    assert snapshot["retention_class_counts"]["security"] == 1
+    assert snapshot["retention_class_counts"]["operational"] == 1
+    assert snapshot["retention_class_counts"]["compliance"] == 1
+    assert snapshot["volume_by_action"]["security.permission.denied"] == 1

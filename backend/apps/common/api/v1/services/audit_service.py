@@ -5,9 +5,10 @@ import json
 from typing import Any
 
 from django.db import transaction
+from django.utils import timezone
 
 from apps.common.exceptions import InvalidAuditEvent
-from apps.common.models import AuditEvent
+from apps.common.models import AuditChainState, AuditEvent
 
 _SENSITIVE_METADATA_KEYS = {
     "password",
@@ -74,6 +75,26 @@ def _sanitize_metadata(value: Any) -> Any:
     return str(value)
 
 
+def _lock_chain_state() -> AuditChainState:
+    chain_state, _ = AuditChainState.objects.select_for_update().get_or_create(
+        pk=AuditChainState.SINGLETON_PK,
+    )
+    if chain_state.last_hash:
+        return chain_state
+
+    latest_hash = (
+        AuditEvent.objects.order_by("-created_at", "-id")
+        .values_list("integrity_hash", flat=True)
+        .first()
+        or ""
+    )
+    if chain_state.last_hash != latest_hash:
+        chain_state.last_hash = latest_hash
+        chain_state.updated_at = timezone.now()
+        chain_state.save(update_fields=("last_hash", "updated_at"))
+    return chain_state
+
+
 def record_audit_event(
     *,
     action: str,
@@ -93,8 +114,8 @@ def record_audit_event(
     normalized_metadata = _normalize_metadata(metadata)
 
     with transaction.atomic():
-        previous_event = AuditEvent.objects.order_by("-created_at", "-id").first()
-        previous_hash = previous_event.integrity_hash if previous_event else ""
+        chain_state = _lock_chain_state()
+        previous_hash = chain_state.last_hash
         integrity_hash = _calculate_integrity_hash(
             action=action,
             target_model=target_model,
@@ -106,7 +127,7 @@ def record_audit_event(
             previous_hash=previous_hash,
         )
 
-        return AuditEvent.objects.create(
+        event = AuditEvent.objects.create(
             actor=actor,
             action=action,
             target_model=target_model,
@@ -117,3 +138,7 @@ def record_audit_event(
             previous_hash=previous_hash,
             integrity_hash=integrity_hash,
         )
+        chain_state.last_hash = integrity_hash
+        chain_state.updated_at = timezone.now()
+        chain_state.save(update_fields=("last_hash", "updated_at"))
+        return event

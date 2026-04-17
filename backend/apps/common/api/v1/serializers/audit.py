@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from apps.common.api.v1.services.audit_integrity_service import AUDIT_INTEGRITY_MAX_LIMIT
 from apps.common.models import AuditEvent
 
 
@@ -53,7 +54,7 @@ class AuditEventSerializer(serializers.ModelSerializer):
 
 
 class AuditIntegrityVerifyRequestSerializer(serializers.Serializer):
-    limit = serializers.IntegerField(required=False, min_value=1, max_value=10000)
+    limit = serializers.IntegerField(required=False, min_value=1, max_value=AUDIT_INTEGRITY_MAX_LIMIT)
     create_checkpoint = serializers.BooleanField(required=False, default=False)
 
 

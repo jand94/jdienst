@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from django.db.models import Q
 from django.db.models import Count
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.common.models import AuditEvent
@@ -106,17 +106,28 @@ def export_events_for_siem(*, limit: int = 500) -> tuple[list[dict], list[dict],
 def collect_audit_health_snapshot(*, window_hours: int = 24) -> dict:
     since = timezone.now() - timedelta(hours=window_hours)
     window_qs = AuditEvent.objects.filter(created_at__gte=since)
+    aggregate_kwargs = {
+        "events_total": Count("id"),
+        "events_without_actor": Count("id", filter=Q(actor__isnull=True)),
+        "events_not_exported": Count("id", filter=Q(exported_at__isnull=True)),
+    }
+    for retention_class in RETENTION_DAYS:
+        aggregate_kwargs[f"retention_{retention_class}"] = Count(
+            "id",
+            filter=_retention_class_query(retention_class),
+        )
+    aggregate_counts = window_qs.aggregate(**aggregate_kwargs)
     volume_by_action = {
         row["action"]: row["total"]
         for row in window_qs.values("action").annotate(total=Count("id"))
     }
     return {
         "window_hours": window_hours,
-        "events_total": window_qs.count(),
-        "events_without_actor": window_qs.filter(actor__isnull=True).count(),
-        "events_not_exported": window_qs.filter(exported_at__isnull=True).count(),
+        "events_total": aggregate_counts["events_total"],
+        "events_without_actor": aggregate_counts["events_without_actor"],
+        "events_not_exported": aggregate_counts["events_not_exported"],
         "retention_class_counts": {
-            retention_class: window_qs.filter(_retention_class_query(retention_class)).count()
+            retention_class: aggregate_counts[f"retention_{retention_class}"]
             for retention_class in RETENTION_DAYS
         },
         "volume_by_action": volume_by_action,

@@ -55,14 +55,7 @@ Einheitliche, nachvollziehbare Auditierung fuer alle kuenftigen Domain-Apps.
 - `archive_old_events(...)`: markiert alte Events als archiviert (`archived_at`).
 - `build_siem_payload(...)`: standardisierte Exportstruktur.
 - `mark_events_exported(...)`: markiert exportierte Events (`exported_at`).
-- Management Commands:
-  - `python manage.py audit_archive_events --before-days <n>`
-  - `python manage.py audit_archive_events --use-retention-policy`
-  - `python manage.py audit_export_siem --limit <n> [--mark-exported]`
-  - `python manage.py audit_backfill_integrity_hashes [--dry-run]`
-  - `python manage.py audit_verify_integrity [--create-checkpoint]`
-  - `python manage.py audit_health_snapshot --window-hours <n>`
-  - `python manage.py audit_setup_roles`
+- Management-Commands und Operator-API: `docs/backend/common/audit-interfaces.md`
 
 ## Beispiel: Auditierbares Domain-Model
 
@@ -135,6 +128,7 @@ Bei einem `admin.update` Event enthaelt `metadata` typischerweise:
 - Architektur und Vertrauensmodell: `docs/backend/common/audit-architecture.md`
 - Security/Privacy-Regeln: `docs/backend/common/audit-security-privacy.md`
 - Betrieb und Retention: `docs/backend/common/audit-operations.md`
+- Schnittstellen-Referenz (Commands + API): `docs/backend/common/audit-interfaces.md`
 - Engineering Security: `docs/engineering/security.md`
 - Engineering Backend: `docs/engineering/backend.md`
 - Engineering Testing: `docs/engineering/testing.md`

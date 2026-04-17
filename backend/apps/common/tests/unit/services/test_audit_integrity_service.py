@@ -5,7 +5,9 @@ from apps.common.api.v1.services import (
     create_integrity_checkpoint,
     verify_integrity_chain,
 )
+from apps.common.api.v1.services.audit_integrity_service import AUDIT_INTEGRITY_MAX_LIMIT
 from apps.common.api.v1.services.audit_service import record_audit_event
+from apps.common.exceptions import InvalidAuditEvent
 from apps.common.models import AuditEvent, AuditIntegrityVerification
 
 
@@ -98,3 +100,15 @@ def test_backfill_integrity_hashes_repairs_chain_and_verifies():
     assert first.integrity_hash != ""
     assert second.previous_hash == first.integrity_hash
     assert verification.status == AuditIntegrityVerification.STATUS_PASSED
+
+
+@pytest.mark.django_db
+def test_verify_integrity_chain_rejects_limit_above_maximum():
+    with pytest.raises(InvalidAuditEvent):
+        verify_integrity_chain(limit=AUDIT_INTEGRITY_MAX_LIMIT + 1, source="unit-test")
+
+
+@pytest.mark.django_db
+def test_backfill_integrity_hashes_rejects_limit_above_maximum():
+    with pytest.raises(InvalidAuditEvent):
+        backfill_integrity_hashes(limit=AUDIT_INTEGRITY_MAX_LIMIT + 1, source="unit-test")

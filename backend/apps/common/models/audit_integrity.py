@@ -4,6 +4,20 @@ from .audit_event import AuditEvent
 from .base_model import TimeStampedModel, UUIDPrimaryKeyModel
 
 
+class AuditChainState(TimeStampedModel):
+    SINGLETON_PK = 1
+
+    id = models.PositiveSmallIntegerField(primary_key=True, default=SINGLETON_PK, editable=False)
+    last_hash = models.CharField(max_length=64, blank=True, default="")
+
+    class Meta:
+        verbose_name = "Audit chain state"
+        verbose_name_plural = "Audit chain state"
+
+    def __str__(self) -> str:
+        return f"Audit chain state ({self.last_hash[:12]})"
+
+
 class AuditIntegrityCheckpoint(UUIDPrimaryKeyModel, TimeStampedModel):
     sequence = models.PositiveIntegerField(unique=True, db_index=True)
     anchor_event = models.ForeignKey(
