@@ -17,7 +17,7 @@ def test_auth_schema_contains_jwt_endpoints_and_bearer_security():
     assert security_schemes["BearerAuth"]["type"] == "http"
     assert security_schemes["BearerAuth"]["scheme"] == "bearer"
 
-    assert paths["/api/auth/v1/logout/"]["post"]["security"] == ["BearerAuth"]
+    assert paths["/api/auth/v1/logout/"]["post"]["security"] == [{"BearerAuth": []}]
     refresh_cookie_parameter = paths["/api/auth/v1/refresh/"]["post"]["parameters"][0]
     assert refresh_cookie_parameter["name"] == settings.AUTH_REFRESH_COOKIE_NAME
     assert paths["/api/auth/v1/logout/"]["post"]["responses"]["200"]["content"]["application/json"]["schema"][

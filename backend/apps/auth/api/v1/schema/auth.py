@@ -58,5 +58,6 @@ auth_logout_schema = extend_schema(
         200: OpenApiResponse(response=AuthLogoutResponseSerializer, description="Logout completed."),
         401: OpenApiResponse(response=AuthErrorEnvelopeSerializer, description="Authentication failed."),
     },
-    auth=["BearerAuth"],
+    # OpenAPI expects security entries as objects, e.g. {"BearerAuth": []}.
+    auth=[{"BearerAuth": []}],
 )
