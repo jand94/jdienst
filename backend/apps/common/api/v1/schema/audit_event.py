@@ -5,6 +5,7 @@ from apps.common.api.v1.serializers import ApiErrorResponseSerializer
 
 audit_event_viewset_schema = extend_schema_view(
     list=extend_schema(
+        operation_id="common_v1_audit_events_list",
         tags=["Common - Audit Events"],
         summary="Listet Audit-Events read-only",
         responses={200: None, 403: ApiErrorResponseSerializer},
@@ -30,6 +31,7 @@ audit_event_viewset_schema = extend_schema_view(
         ],
     ),
     retrieve=extend_schema(
+        operation_id="common_v1_audit_events_retrieve",
         tags=["Common - Audit Events"],
         summary="Liefert ein einzelnes Audit-Event read-only",
         responses={200: None, 403: ApiErrorResponseSerializer, 404: ApiErrorResponseSerializer},
