@@ -1,5 +1,6 @@
 from rest_framework import mixins, status
 from rest_framework.decorators import action
+from drf_spectacular.utils import extend_schema
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -38,6 +39,10 @@ class AccountUserViewSet(
         return [IsAuthenticated()]
 
     def get_serializer_class(self):
+        if self.action == "me":
+            if getattr(self.request, "method", "").upper() == "PATCH":
+                return AccountUserUpdateSerializer
+            return AccountUserReadSerializer
         if self.action in {"partial_update", "update"}:
             return AccountUserUpdateSerializer
         return AccountUserReadSerializer
@@ -54,6 +59,19 @@ class AccountUserViewSet(
         return response
 
     @action(detail=False, methods=["get", "patch"], url_path="me")
+    @extend_schema(
+        methods=["GET"],
+        tags=["Accounts - User - Self Service"],
+        summary="Retrieve authenticated user profile",
+        responses=AccountUserReadSerializer,
+    )
+    @extend_schema(
+        methods=["PATCH"],
+        tags=["Accounts - User - Self Service"],
+        summary="Partially update authenticated user profile",
+        request=AccountUserUpdateSerializer,
+        responses=AccountUserReadSerializer,
+    )
     def me(self, request):
         if request.method == "GET":
             serializer = AccountUserReadSerializer(request.user)
@@ -79,6 +97,12 @@ class AccountUserViewSet(
         return Response(AccountUserReadSerializer(user).data)
 
     @action(detail=False, methods=["post"], url_path="me/deactivate")
+    @extend_schema(
+        tags=["Accounts - User - Self Service"],
+        summary="Deactivate authenticated user",
+        request=None,
+        responses=AccountUserReadSerializer,
+    )
     def deactivate_me(self, request):
         user = deactivate_user(actor=request.user, source="api")
         return Response(AccountUserReadSerializer(user).data, status=status.HTTP_200_OK)

@@ -9,6 +9,7 @@ from apps.common.api.v1.serializers import (
     AuditArchiveRequestSerializer,
     AuditHealthSnapshotQuerySerializer,
     AuditIntegrityVerifyRequestSerializer,
+    AuditNoInputSerializer,
     AuditSiemExportPreviewQuerySerializer,
 )
 from apps.common.api.v1.services import (
@@ -24,6 +25,17 @@ from apps.common.api.v1.services import (
 @audit_ops_viewset_schema
 class AuditOperationsViewSet(GenericViewSet):
     permission_classes = [IsAuditOperator]
+    serializer_class = AuditNoInputSerializer
+
+    def get_serializer_class(self):
+        action_map = {
+            "health_snapshot": AuditHealthSnapshotQuerySerializer,
+            "verify_integrity": AuditIntegrityVerifyRequestSerializer,
+            "siem_export_preview": AuditSiemExportPreviewQuerySerializer,
+            "archive_events": AuditArchiveRequestSerializer,
+            "setup_roles": AuditNoInputSerializer,
+        }
+        return action_map.get(self.action, self.serializer_class)
 
     @action(detail=False, methods=["get"], url_path="health-snapshot")
     def health_snapshot(self, request):

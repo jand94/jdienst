@@ -68,3 +68,43 @@ class AuditHealthSnapshotQuerySerializer(serializers.Serializer):
 
 class AuditSiemExportPreviewQuerySerializer(serializers.Serializer):
     limit = serializers.IntegerField(required=False, min_value=1, max_value=500, default=100)
+
+
+class AuditNoInputSerializer(serializers.Serializer):
+    pass
+
+
+class AuditHealthSnapshotResponseSerializer(serializers.Serializer):
+    window_hours = serializers.IntegerField()
+    events_total = serializers.IntegerField()
+    events_without_actor = serializers.IntegerField()
+    events_not_exported = serializers.IntegerField()
+    retention_class_counts = serializers.DictField(child=serializers.IntegerField())
+    volume_by_action = serializers.DictField(child=serializers.IntegerField())
+
+
+class AuditIntegrityVerifyResponseSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    status = serializers.CharField()
+    checked_events = serializers.IntegerField()
+    last_event_hash = serializers.CharField()
+    details = serializers.JSONField()
+    checkpoint_id = serializers.UUIDField(allow_null=True)
+
+
+class AuditSiemExportPreviewResponseSerializer(serializers.Serializer):
+    exportable_count = serializers.IntegerField()
+    failure_count = serializers.IntegerField()
+    event_ids = serializers.ListField(child=serializers.CharField())
+    preview = serializers.ListField(child=serializers.JSONField())
+    failures = serializers.ListField(child=serializers.JSONField())
+
+
+class AuditArchiveResponseSerializer(serializers.Serializer):
+    archived_events = serializers.IntegerField()
+    mode = serializers.ChoiceField(choices=["before_days", "retention_policy"])
+
+
+class AuditSetupRolesResponseSerializer(serializers.Serializer):
+    roles = serializers.ListField(child=serializers.CharField())
+    created_roles = serializers.IntegerField()

@@ -1,5 +1,7 @@
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
+from apps.accounts.api.v1.serializers import AccountUserReadSerializer, AccountUserUpdateSerializer
+
 
 account_user_viewset_schema = extend_schema_view(
     list=extend_schema(
@@ -13,17 +15,13 @@ account_user_viewset_schema = extend_schema_view(
     update=extend_schema(
         tags=["Accounts - User"],
         summary="Update user profile by id",
+        request=AccountUserUpdateSerializer,
+        responses=AccountUserReadSerializer,
     ),
     partial_update=extend_schema(
         tags=["Accounts - User"],
-        summary="Partially update own user profile",
-    ),
-    me=extend_schema(
-        tags=["Accounts - User - Self Service"],
-        summary="Retrieve authenticated user profile",
-    ),
-    deactivate_me=extend_schema(
-        tags=["Accounts - User - Self Service"],
-        summary="Deactivate authenticated user",
+        summary="Partially update user profile by id",
+        request=AccountUserUpdateSerializer,
+        responses=AccountUserReadSerializer,
     ),
 )
