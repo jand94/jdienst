@@ -1,7 +1,7 @@
 from django.db import transaction
 
 from apps.accounts.models import User
-from apps.common.api.v1.services import record_audit_event
+from apps.common.api.v1.services import enqueue_outbox_event, record_audit_event
 
 _PROFILE_UPDATE_FIELDS = ("first_name", "last_name", "email")
 
@@ -40,6 +40,19 @@ def update_user_profile(
                 request_id=request_id,
                 trace_id=trace_id,
             )
+            enqueue_outbox_event(
+                topic="accounts.user.updated",
+                dedup_key=f"accounts.user.updated:{actor.pk}:{','.join(sorted(changed_fields.keys()))}",
+                headers={
+                    "request_id": request_id,
+                    "trace_id": trace_id,
+                },
+                payload={
+                    "user_id": str(actor.pk),
+                    "changed_fields": sorted(changed_fields.keys()),
+                    "source": source,
+                },
+            )
     return actor
 
 
@@ -65,6 +78,19 @@ def deactivate_user(
             metadata={"source": source, "reason": reason},
             request_id=request_id,
             trace_id=trace_id,
+        )
+        enqueue_outbox_event(
+            topic="accounts.user.deactivated",
+            dedup_key=f"accounts.user.deactivated:{actor.pk}",
+            headers={
+                "request_id": request_id,
+                "trace_id": trace_id,
+            },
+            payload={
+                "user_id": str(actor.pk),
+                "reason": reason,
+                "source": source,
+            },
         )
     return actor
 

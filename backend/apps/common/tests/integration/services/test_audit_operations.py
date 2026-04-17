@@ -126,6 +126,7 @@ def test_audit_health_snapshot_command_returns_json_payload():
     assert payload["window_hours"] == 72
     assert "retention_class_counts" in payload
     assert "integrity_verification" in payload
+    assert "outbox" in payload
 
 
 @pytest.mark.django_db
@@ -179,6 +180,7 @@ def test_collect_audit_health_snapshot_returns_consistent_aggregates():
     assert snapshot["retention_class_counts"]["compliance"] == 1
     assert snapshot["volume_by_action"]["security.permission.denied"] == 1
     assert "integrity_verification" in snapshot
+    assert "outbox" in snapshot
 
 
 @pytest.mark.django_db

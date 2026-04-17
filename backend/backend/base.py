@@ -71,6 +71,7 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "apps.common.middleware.request_context.CommonRequestContextMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -160,6 +161,7 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
     ],
+    "EXCEPTION_HANDLER": "apps.common.api.v1.services.error_mapping_service.api_exception_handler",
 }
 
 SPECTACULAR_SETTINGS = {
@@ -172,3 +174,11 @@ AUTH_USER_MODEL = "accounts.User"
 
 AUDIT_READER_GROUPS = _env_list("AUDIT_READER_GROUPS", default="AuditReader")
 AUDIT_INTEGRITY_SIGNING_KEY = os.getenv("AUDIT_INTEGRITY_SIGNING_KEY", SECRET_KEY)
+COMMON_OUTBOX_MAX_ATTEMPTS = int(os.getenv("COMMON_OUTBOX_MAX_ATTEMPTS", "10"))
+COMMON_PLATFORM_MAX_OUTBOX_PENDING = int(os.getenv("COMMON_PLATFORM_MAX_OUTBOX_PENDING", "5000"))
+COMMON_PLATFORM_MAX_OUTBOX_OLDEST_AGE_SECONDS = int(
+    os.getenv("COMMON_PLATFORM_MAX_OUTBOX_OLDEST_AGE_SECONDS", "900")
+)
+COMMON_PLATFORM_MAX_AUDIT_VERIFICATION_AGE_HOURS = int(
+    os.getenv("COMMON_PLATFORM_MAX_AUDIT_VERIFICATION_AGE_HOURS", "24")
+)

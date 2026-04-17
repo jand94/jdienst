@@ -1,7 +1,7 @@
 import pytest
 
 from apps.accounts.api.v1.services.account_user_service import deactivate_user, update_user_profile
-from apps.common.models import AuditEvent
+from apps.common.models import AuditEvent, OutboxEvent
 from apps.common.tests.factories import UserFactory
 
 
@@ -25,6 +25,8 @@ def test_update_user_profile_updates_fields_and_writes_audit_event():
     ).first()
     assert event is not None
     assert event.metadata["source"] == "api"
+    outbox = OutboxEvent.objects.filter(topic="accounts.user.updated", payload__user_id=str(actor.pk)).first()
+    assert outbox is not None
 
 
 @pytest.mark.django_db
@@ -42,6 +44,8 @@ def test_deactivate_user_sets_is_active_false_and_writes_audit_event():
     ).first()
     assert event is not None
     assert event.metadata["source"] == "api"
+    outbox = OutboxEvent.objects.filter(topic="accounts.user.deactivated", payload__user_id=str(actor.pk)).first()
+    assert outbox is not None
 
 
 @pytest.mark.django_db

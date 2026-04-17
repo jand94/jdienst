@@ -122,14 +122,23 @@ jobs:
       - name: Run audit coverage test suite
         run: |
           pytest \
+            apps/common/tests/unit/services/test_error_mapping_service.py \
             apps/common/tests/unit/services/test_audit_service.py \
+            apps/common/tests/unit/services/test_idempotency_service.py \
+            apps/common/tests/unit/services/test_outbox_service.py \
             apps/common/tests/unit/services/test_audit_reader_service.py \
+            apps/common/tests/unit/services/test_audit_context_service.py \
             apps/common/tests/integration/api/test_audit_event_api.py \
             apps/common/tests/integration/api/test_audit_ops_api.py \
             apps/common/tests/integration/api/test_audit_schema_contract.py \
+            apps/common/tests/integration/api/test_platform_api.py \
+            apps/common/tests/integration/services/test_platform_operations.py \
             apps/accounts/tests/unit/services/test_account_user_service.py \
             apps/accounts/tests/unit/services/test_account_security_service.py \
             apps/accounts/tests/integration/api/test_account_user_api.py
+
+      - name: Run platform compliance check
+        run: python manage.py common_platform_check --window-hours 24 --fail-on-error
 
   frontend_quality:
     name: Frontend Quality

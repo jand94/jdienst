@@ -60,6 +60,7 @@ def test_patch_me_updates_profile_and_creates_audit_event(api_client):
         reverse("accounts-user-me"),
         data={"first_name": "New"},
         format="json",
+        HTTP_IDEMPOTENCY_KEY="me-patch-1",
     )
 
     assert response.status_code == 200
@@ -74,6 +75,21 @@ def test_patch_me_updates_profile_and_creates_audit_event(api_client):
 
 
 @pytest.mark.django_db
+def test_patch_me_requires_idempotency_key(api_client):
+    user = UserFactory(first_name="Old")
+    api_client.force_authenticate(user=user)
+
+    response = api_client.patch(
+        reverse("accounts-user-me"),
+        data={"first_name": "New"},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert response.data["error"]["code"] == "validation_error"
+
+
+@pytest.mark.django_db
 def test_retrieve_foreign_user_is_forbidden_and_audited(api_client):
     actor = UserFactory()
     other_user = UserFactory()
@@ -82,6 +98,7 @@ def test_retrieve_foreign_user_is_forbidden_and_audited(api_client):
     response = api_client.get(reverse("accounts-user-detail", kwargs={"pk": other_user.pk}))
 
     assert response.status_code == 403
+    assert response.data["error"]["code"] == "permission_denied"
     denied_event = AuditEvent.objects.filter(
         action="security.permission.denied",
         target_model="accounts.User",
@@ -113,7 +130,10 @@ def test_deactivate_me_deactivates_user_and_writes_audit_event(api_client):
     user = UserFactory(is_active=True)
     api_client.force_authenticate(user=user)
 
-    response = api_client.post(reverse("accounts-user-deactivate-me"))
+    response = api_client.post(
+        reverse("accounts-user-deactivate-me"),
+        HTTP_IDEMPOTENCY_KEY="deactivate-1",
+    )
 
     assert response.status_code == 200
     user.refresh_from_db()
@@ -125,3 +145,25 @@ def test_deactivate_me_deactivates_user_and_writes_audit_event(api_client):
         actor=user,
         metadata__source="api",
     ).exists()
+
+
+@pytest.mark.django_db
+def test_deactivate_me_replays_response_for_same_idempotency_key(api_client):
+    user = UserFactory(is_active=True)
+    api_client.force_authenticate(user=user)
+    url = reverse("accounts-user-deactivate-me")
+
+    first = api_client.post(url, HTTP_IDEMPOTENCY_KEY="deactivate-2")
+    second = api_client.post(url, HTTP_IDEMPOTENCY_KEY="deactivate-2")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert second["X-Idempotent-Replayed"] == "true"
+    assert (
+        AuditEvent.objects.filter(
+            action="accounts.user.deactivated",
+            target_model="accounts.User",
+            target_id=str(user.pk),
+        ).count()
+        == 1
+    )

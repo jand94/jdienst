@@ -7,6 +7,7 @@ from django.db.models import Count
 from django.db.models import Q
 from django.utils import timezone
 
+from apps.common.api.v1.services.outbox_service import collect_outbox_health_snapshot
 from apps.common.models import AuditEvent, AuditIntegrityVerification
 
 RETENTION_DAYS = {
@@ -123,7 +124,11 @@ def collect_audit_health_snapshot(*, window_hours: int = 24) -> dict:
         for row in window_qs.values("action").annotate(total=Count("id"))
     }
     latest_verification = AuditIntegrityVerification.objects.order_by("-finished_at", "-created_at").first()
-    verification_max_age_hours = getattr(settings, "AUDIT_VERIFICATION_MAX_AGE_HOURS", 24)
+    verification_max_age_hours = getattr(
+        settings,
+        "COMMON_PLATFORM_MAX_AUDIT_VERIFICATION_AGE_HOURS",
+        getattr(settings, "AUDIT_VERIFICATION_MAX_AGE_HOURS", 24),
+    )
     verification_status = {
         "is_fresh": False,
         "max_age_hours": verification_max_age_hours,
@@ -154,4 +159,5 @@ def collect_audit_health_snapshot(*, window_hours: int = 24) -> dict:
         },
         "volume_by_action": volume_by_action,
         "integrity_verification": verification_status,
+        "outbox": collect_outbox_health_snapshot(),
     }

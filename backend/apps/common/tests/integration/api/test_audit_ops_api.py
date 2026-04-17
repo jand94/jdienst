@@ -18,6 +18,8 @@ def test_audit_ops_health_snapshot_requires_operator_permission(api_client):
     response = api_client.get(reverse("common-audit-ops-health-snapshot"))
 
     assert response.status_code == 403
+    assert "error" in response.data
+    assert response.data["error"]["code"] == "permission_denied"
 
 
 @pytest.mark.django_db

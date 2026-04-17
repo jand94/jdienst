@@ -32,14 +32,26 @@ gemäss den Engineering-Regeln implementiert werden.
 - `exceptions/audit.py`: fachliche Audit-Exceptions
 - `api/v1/services/audit_service.py`: sichere Event-Erzeugung inkl. Metadaten-Sanitization
 - `api/v1/services/audit_operations_service.py`: Archivierung, SIEM-Payload und Monitoring-Snapshot
+- `api/v1/services/idempotency_service.py`: Idempotency-Key-Handling fuer kritische Mutationen
+- `api/v1/services/outbox_service.py`: persistente Outbox fuer integrationssicheren Event-Dispatch
+- `api/v1/services/error_mapping_service.py`: einheitlicher API-Fehler-Contract
 - `api/v1/serializers/audit.py`: Audit-Serializer und Read-only-Mixin
+- `api/v1/serializers/error.py`: standardisierte Fehlerantworten
+- `api/v1/serializers/platform.py`: technische Platform-Health-/Ops-Contracts
 - `api/v1/permissions/audit_reader.py`: read-only Zugriffsschutz fuer Audit-API
 - `api/v1/views/audit_event.py`: read-only API-Endpunkte fuer Audit-Events
+- `api/v1/views/platform_health.py`: technische Health-Snapshots fuer Plattform-Bausteine
+- `api/v1/views/platform_ops.py`: technische Compliance-/SLO-Operationen
+- `middleware/request_context.py`: request_id/trace_id Kontext-Capture fuer Audit/Outbox/Errors
 - `admin/base_admin.py`: wiederverwendbare Admin-Basis
 - `admin/audit_mixin.py`: Audit-Hooks fuer Admin-Aktionen
 - `admin/audit_event.py`: Admin-Registrierung fuer AuditEvent
 - `management/commands/audit_archive_events.py`: Archivierungsjob
 - `management/commands/audit_export_siem.py`: JSONL-Export fuer SIEM
+- `management/commands/common_platform_check.py`: platformweite Compliance-Guards
+- `management/commands/common_platform_slo_report.py`: SLO-Bericht inkl. Maintenance
+- `management/commands/outbox_dispatch.py`: Outbox-Dispatch mit Retry
+- `management/commands/outbox_health_snapshot.py`: Outbox-Betriebsindikatoren
 - `tests/`: Unit- und Integrationstests inkl. Factories
 
 ## Nutzung in neuen Apps

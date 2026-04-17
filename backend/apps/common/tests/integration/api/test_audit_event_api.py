@@ -24,6 +24,7 @@ def test_audit_event_api_requires_audit_reader_permission():
     response = client.get(url)
 
     assert response.status_code == 403
+    assert response.data["error"]["code"] == "permission_denied"
     assert event.pk is not None
 
 
@@ -95,3 +96,28 @@ def test_audit_event_api_allows_group_based_auditor_role():
     assert read_event.metadata["source"] == "api"
     assert "request_id" in read_event.metadata
     assert "trace_id" in read_event.metadata
+
+
+@pytest.mark.django_db
+def test_common_request_context_middleware_sets_response_headers():
+    auditor = UserFactory(is_staff=True)
+    role = Group.objects.create(name="AuditReader")
+    auditor.groups.add(role)
+    role.permissions.add(Permission.objects.get(codename="view_auditevent"))
+    event = AuditEvent.objects.create(
+        action="auth.login.failed",
+        target_model="accounts.User",
+        target_id="9",
+        metadata={"source": "api"},
+    )
+    client = APIClient()
+    client.force_authenticate(user=auditor)
+
+    response = client.get(
+        reverse("common-audit-event-detail", kwargs={"pk": event.pk}),
+        HTTP_X_REQUEST_ID="req-header-1",
+    )
+
+    assert response.status_code == 200
+    assert response["X-Request-ID"] == "req-header-1"
+    assert "X-Trace-ID" in response

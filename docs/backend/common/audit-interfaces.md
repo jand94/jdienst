@@ -13,6 +13,10 @@ Andere Audit-Dokumente verlinken hierher, um Duplikate zu vermeiden.
 - `python manage.py audit_backfill_integrity_hashes [--dry-run] [--limit <n>]`
 - `python manage.py audit_verify_integrity [--create-checkpoint] [--limit <n>]`
 - `python manage.py audit_health_snapshot --window-hours <n> [--require-fresh-integrity] [--max-unexported-events <n>]`
+- `python manage.py outbox_dispatch --batch-size <n>`
+- `python manage.py outbox_health_snapshot`
+- `python manage.py common_platform_check --window-hours <n> [--fail-on-error]`
+- `python manage.py common_platform_slo_report --window-hours <n>`
 - `python manage.py audit_setup_roles`
 
 ## Operator-API (`AuditOperationsViewSet`)
@@ -22,6 +26,9 @@ Andere Audit-Dokumente verlinken hierher, um Duplikate zu vermeiden.
 - `GET /api/common/v1/audit-ops/siem-export-preview/`
 - `POST /api/common/v1/audit-ops/archive-events/`
 - `POST /api/common/v1/audit-ops/setup-roles/`
+- `GET /api/common/v1/platform-health/snapshot/`
+- `POST /api/common/v1/platform-ops/check/`
+- `POST /api/common/v1/platform-ops/slo-report/`
 
 ## Limit- und Last-Hinweise
 

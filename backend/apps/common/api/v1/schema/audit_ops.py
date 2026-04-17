@@ -1,6 +1,7 @@
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema, extend_schema_view
 
 from apps.common.api.v1.serializers import (
+    ApiErrorResponseSerializer,
     AuditArchiveRequestSerializer,
     AuditArchiveResponseSerializer,
     AuditHealthSnapshotResponseSerializer,
@@ -15,7 +16,7 @@ audit_ops_viewset_schema = extend_schema_view(
     health_snapshot=extend_schema(
         tags=["Common - Audit Operations - Monitoring"],
         summary="Liefert Audit-Health-Snapshot",
-        responses=AuditHealthSnapshotResponseSerializer,
+        responses={200: AuditHealthSnapshotResponseSerializer, 403: ApiErrorResponseSerializer},
         parameters=[
             OpenApiParameter(
                 name="window_hours",
@@ -29,12 +30,12 @@ audit_ops_viewset_schema = extend_schema_view(
         tags=["Common - Audit Operations - Integrity"],
         summary="Startet Integritaets-Verifikation und optionalen Checkpoint",
         request=AuditIntegrityVerifyRequestSerializer,
-        responses=AuditIntegrityVerifyResponseSerializer,
+        responses={200: AuditIntegrityVerifyResponseSerializer, 400: ApiErrorResponseSerializer, 403: ApiErrorResponseSerializer},
     ),
     siem_export_preview=extend_schema(
         tags=["Common - Audit Operations - SIEM"],
         summary="Zeigt SIEM-Exportvorschau ohne Export-Markierung",
-        responses=AuditSiemExportPreviewResponseSerializer,
+        responses={200: AuditSiemExportPreviewResponseSerializer, 400: ApiErrorResponseSerializer, 403: ApiErrorResponseSerializer},
         parameters=[
             OpenApiParameter(
                 name="limit",
@@ -48,12 +49,12 @@ audit_ops_viewset_schema = extend_schema_view(
         tags=["Common - Audit Operations - Retention"],
         summary="Startet Audit-Archivierung (Tage-basiert oder Retention-Policy)",
         request=AuditArchiveRequestSerializer,
-        responses=AuditArchiveResponseSerializer,
+        responses={200: AuditArchiveResponseSerializer, 400: ApiErrorResponseSerializer, 403: ApiErrorResponseSerializer},
     ),
     setup_roles=extend_schema(
         tags=["Common - Audit Operations - Access"],
         summary="Synchronisiert konfigurierte Audit-Reader-Rollen",
         request=None,
-        responses=AuditSetupRolesResponseSerializer,
+        responses={200: AuditSetupRolesResponseSerializer, 403: ApiErrorResponseSerializer},
     ),
 )

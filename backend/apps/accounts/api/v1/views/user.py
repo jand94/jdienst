@@ -1,6 +1,6 @@
 from rest_framework import mixins, status
 from rest_framework.decorators import action
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -11,7 +11,11 @@ from apps.accounts.api.v1.schema import account_user_viewset_schema
 from apps.accounts.api.v1.serializers import AccountUserReadSerializer, AccountUserUpdateSerializer
 from apps.accounts.api.v1.services import deactivate_user, update_user_profile
 from apps.accounts.api.v1.services import log_user_list_access, log_user_read_access
-from apps.common.api.v1.services import extract_audit_correlation_ids
+from apps.common.api.v1.services import (
+    execute_idempotent_operation,
+    extract_audit_correlation_ids,
+    require_idempotency_key,
+)
 from apps.accounts.models import User
 
 
@@ -31,6 +35,29 @@ class AccountUserViewSet(
     queryset = User.objects.order_by("-date_joined", "-id")
     serializer_class = AccountUserReadSerializer
     pagination_class = AccountUserPagination
+
+    def _execute_idempotent_update(
+        self,
+        *,
+        request,
+        scope: str,
+        body: dict,
+        execute,
+    ) -> Response:
+        key = require_idempotency_key(request)
+        result = execute_idempotent_operation(
+            scope=scope,
+            key=key,
+            actor=request.user,
+            method=request.method,
+            path=request.path,
+            body=body,
+            execute=execute,
+        )
+        response = Response(result.payload, status=result.status_code)
+        if result.replayed:
+            response["X-Idempotent-Replayed"] = "true"
+        return response
 
     def get_permissions(self):
         if self.action == "list":
@@ -86,6 +113,15 @@ class AccountUserViewSet(
         summary="Partially update authenticated user profile",
         request=AccountUserUpdateSerializer,
         responses=AccountUserReadSerializer,
+        parameters=[
+            OpenApiParameter(
+                name="Idempotency-Key",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.HEADER,
+                required=True,
+                description="Idempotency key for mutation safety.",
+            )
+        ],
     )
     def me(self, request):
         request_id, trace_id = extract_audit_correlation_ids(request)
@@ -107,14 +143,23 @@ class AccountUserViewSet(
             context={"request": request},
         )
         serializer.is_valid(raise_exception=True)
-        user = update_user_profile(
-            actor=request.user,
-            data=serializer.validated_data,
-            source="api",
-            request_id=request_id,
-            trace_id=trace_id,
+        return self._execute_idempotent_update(
+            request=request,
+            scope="accounts.user.me.patch",
+            body=serializer.validated_data,
+            execute=lambda: (
+                AccountUserReadSerializer(
+                    update_user_profile(
+                        actor=request.user,
+                        data=serializer.validated_data,
+                        source="api",
+                        request_id=request_id,
+                        trace_id=trace_id,
+                    )
+                ).data,
+                status.HTTP_200_OK,
+            ),
         )
-        return Response(AccountUserReadSerializer(user).data)
 
     @action(detail=False, methods=["post"], url_path="me/deactivate")
     @extend_schema(
@@ -122,16 +167,34 @@ class AccountUserViewSet(
         summary="Deactivate authenticated user",
         request=None,
         responses=AccountUserReadSerializer,
+        parameters=[
+            OpenApiParameter(
+                name="Idempotency-Key",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.HEADER,
+                required=True,
+                description="Idempotency key for mutation safety.",
+            )
+        ],
     )
     def deactivate_me(self, request):
         request_id, trace_id = extract_audit_correlation_ids(request)
-        user = deactivate_user(
-            actor=request.user,
-            source="api",
-            request_id=request_id,
-            trace_id=trace_id,
+        return self._execute_idempotent_update(
+            request=request,
+            scope="accounts.user.me.deactivate",
+            body={},
+            execute=lambda: (
+                AccountUserReadSerializer(
+                    deactivate_user(
+                        actor=request.user,
+                        source="api",
+                        request_id=request_id,
+                        trace_id=trace_id,
+                    )
+                ).data,
+                status.HTTP_200_OK,
+            ),
         )
-        return Response(AccountUserReadSerializer(user).data, status=status.HTTP_200_OK)
 
     def partial_update(self, request, *args, **kwargs):
         target = self.get_object()
@@ -142,14 +205,23 @@ class AccountUserViewSet(
             context={"request": request},
         )
         serializer.is_valid(raise_exception=True)
-        updated = update_user_profile(
-            actor=target,
-            data=serializer.validated_data,
-            source="api",
-            request_id=request_id,
-            trace_id=trace_id,
+        return self._execute_idempotent_update(
+            request=request,
+            scope="accounts.user.partial_update",
+            body=serializer.validated_data,
+            execute=lambda: (
+                AccountUserReadSerializer(
+                    update_user_profile(
+                        actor=target,
+                        data=serializer.validated_data,
+                        source="api",
+                        request_id=request_id,
+                        trace_id=trace_id,
+                    )
+                ).data,
+                status.HTTP_200_OK,
+            ),
         )
-        return Response(AccountUserReadSerializer(updated).data)
 
     def update(self, request, *args, **kwargs):
         target = self.get_object()
@@ -160,11 +232,20 @@ class AccountUserViewSet(
             context={"request": request},
         )
         serializer.is_valid(raise_exception=True)
-        updated = update_user_profile(
-            actor=target,
-            data=serializer.validated_data,
-            source="api",
-            request_id=request_id,
-            trace_id=trace_id,
+        return self._execute_idempotent_update(
+            request=request,
+            scope="accounts.user.update",
+            body=serializer.validated_data,
+            execute=lambda: (
+                AccountUserReadSerializer(
+                    update_user_profile(
+                        actor=target,
+                        data=serializer.validated_data,
+                        source="api",
+                        request_id=request_id,
+                        trace_id=trace_id,
+                    )
+                ).data,
+                status.HTTP_200_OK,
+            ),
         )
-        return Response(AccountUserReadSerializer(updated).data)
