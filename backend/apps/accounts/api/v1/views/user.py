@@ -122,9 +122,9 @@ class AccountUserViewSet(
         )
         return response
 
-    @action(detail=False, methods=["get", "patch"], url_path="me")
     @extend_schema(
         methods=["GET"],
+        operation_id="accounts_v1_users_me_retrieve",
         tags=["Accounts - User - Self Service"],
         summary="Retrieve authenticated user profile",
         responses=AccountUserReadSerializer,
@@ -140,6 +140,7 @@ class AccountUserViewSet(
     )
     @extend_schema(
         methods=["PATCH"],
+        operation_id="accounts_v1_users_me_partial_update",
         tags=["Accounts - User - Self Service"],
         summary="Partially update authenticated user profile",
         request=AccountUserUpdateSerializer,
@@ -161,6 +162,7 @@ class AccountUserViewSet(
             )
         ],
     )
+    @action(detail=False, methods=["get", "patch"], url_path="me")
     def me(self, request):
         tenant = self._current_tenant(request)
         ensure_user_in_tenant(user=request.user, tenant=tenant)
@@ -201,8 +203,8 @@ class AccountUserViewSet(
             ),
         )
 
-    @action(detail=False, methods=["post"], url_path="me/deactivate")
     @extend_schema(
+        operation_id="accounts_v1_users_me_deactivate_create",
         tags=["Accounts - User - Self Service"],
         summary="Deactivate authenticated user",
         request=None,
@@ -224,6 +226,7 @@ class AccountUserViewSet(
             )
         ],
     )
+    @action(detail=False, methods=["post"], url_path="me/deactivate")
     def deactivate_me(self, request):
         tenant = self._current_tenant(request)
         ensure_user_in_tenant(user=request.user, tenant=tenant)

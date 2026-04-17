@@ -33,7 +33,7 @@ class CommonRequestContextMiddleware:
             }
         )
         response = self.get_response(request)
-        response[HeaderName.REQUEST_ID] = request_id
-        response[HeaderName.TRACE_ID] = trace_id
+        response[HeaderName.REQUEST_ID.value] = request_id
+        response[HeaderName.TRACE_ID.value] = trace_id
         clear_request_context()
         return response

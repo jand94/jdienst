@@ -132,15 +132,19 @@ jobs:
             apps/common/tests/unit/services/test_distributed_lock_service.py \
             apps/common/tests/unit/services/test_platform_settings_service.py \
             apps/common/tests/unit/services/test_tenant_context_service.py \
+            apps/common/tests/unit/services/test_tenant_membership_service.py \
+            apps/common/tests/unit/services/test_tenant_user_assignment_signal.py \
             apps/common/tests/unit/models/test_soft_delete_model.py \
             apps/common/tests/integration/api/test_audit_event_api.py \
             apps/common/tests/integration/api/test_audit_ops_api.py \
             apps/common/tests/integration/api/test_audit_schema_contract.py \
             apps/common/tests/integration/api/test_platform_api.py \
+            apps/common/tests/integration/api/test_tenant_ops_api.py \
             apps/common/tests/integration/services/test_platform_operations.py \
             apps/accounts/tests/unit/services/test_account_user_service.py \
             apps/accounts/tests/unit/services/test_account_security_service.py \
-            apps/accounts/tests/integration/api/test_account_user_api.py
+            apps/accounts/tests/integration/api/test_account_user_api.py \
+            apps/accounts/tests/integration/api/test_accounts_schema_contract.py
 
       - name: Run platform compliance check
         run: |

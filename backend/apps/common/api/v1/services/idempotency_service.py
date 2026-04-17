@@ -15,7 +15,7 @@ from apps.common.api.v1.services.platform_settings_service import get_platform_s
 from apps.common.exceptions import ConflictError, ValidationError
 from apps.common.models import IdempotencyKey
 
-IDEMPOTENCY_KEY_HEADER = HeaderName.IDEMPOTENCY_KEY
+IDEMPOTENCY_KEY_HEADER = HeaderName.IDEMPOTENCY_KEY.value
 DEFAULT_IDEMPOTENCY_TTL_SECONDS = 3600
 
 

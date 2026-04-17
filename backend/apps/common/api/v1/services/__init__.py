@@ -16,6 +16,11 @@ from .platform_health_service import (
 from .platform_settings_service import get_platform_settings
 from .soft_delete_service import ensure_not_soft_deleted
 from .tenant_context_service import clear_tenant_context, ensure_user_in_tenant, extract_tenant_slug, get_tenant_context, require_tenant, resolve_request_tenant, set_tenant_context
+from .tenant_membership_service import (
+    assign_user_to_default_tenant,
+    assign_user_to_tenant,
+    deactivate_tenant_membership,
+)
 
 __all__ = [
     "DEFAULT_IDEMPOTENCY_TTL_SECONDS",
@@ -24,6 +29,8 @@ __all__ = [
     "acquire_lock",
     "archive_events_by_retention_policy",
     "archive_old_events",
+    "assign_user_to_default_tenant",
+    "assign_user_to_tenant",
     "backfill_integrity_hashes",
     "build_siem_payload",
     "classify_retention_class",
@@ -37,6 +44,7 @@ __all__ = [
     "collect_tenant_consistency_snapshot",
     "create_integrity_checkpoint",
     "dispatch_pending_outbox_events",
+    "deactivate_tenant_membership",
     "enqueue_outbox_event",
     "ensure_audit_operator_roles",
     "ensure_audit_reader_roles",

@@ -16,3 +16,9 @@ def test_platform_settings_reads_defaults():
 def test_platform_settings_validates_attempts():
     with pytest.raises(InfrastructureError):
         get_platform_settings()
+
+
+@override_settings(COMMON_TENANT_DEFAULT_ROLE="invalid")
+def test_platform_settings_validates_default_tenant_role():
+    with pytest.raises(InfrastructureError):
+        get_platform_settings()

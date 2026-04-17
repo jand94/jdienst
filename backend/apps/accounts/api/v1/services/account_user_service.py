@@ -1,7 +1,12 @@
 from django.db import transaction
 
 from apps.accounts.models import User
-from apps.common.api.v1.services import enqueue_outbox_event, record_audit_event
+from apps.common.api.v1.services import (
+    assign_user_to_tenant,
+    enqueue_outbox_event,
+    record_audit_event,
+)
+from apps.common.models import TenantMembership
 
 _PROFILE_UPDATE_FIELDS = ("first_name", "last_name", "email")
 
@@ -93,6 +98,28 @@ def deactivate_user(
             },
         )
     return actor
+
+
+def assign_user_to_tenant_membership(
+    *,
+    actor: User,
+    target_user: User,
+    tenant,
+    role: str = TenantMembership.ROLE_MEMBER,
+    source: str,
+    request_id: str | None = None,
+    trace_id: str | None = None,
+):
+    return assign_user_to_tenant(
+        user=target_user,
+        tenant=tenant,
+        role=role,
+        is_active=True,
+        actor=actor,
+        source=source,
+        request_id=request_id,
+        trace_id=trace_id,
+    )
 
 
 def log_user_list_access(

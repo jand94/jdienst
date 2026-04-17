@@ -25,17 +25,40 @@ def clear_tenant_context() -> None:
 
 def extract_tenant_slug(request) -> str | None:
     headers = getattr(request, "headers", {})
-    value = headers.get(HeaderName.TENANT_SLUG, "")
+    value = headers.get(HeaderName.TENANT_SLUG.value, "")
     normalized = value.strip() if isinstance(value, str) else ""
     return normalized or None
 
 
+def _resolve_single_membership_tenant(*, user) -> Tenant | None:
+    if user is None or not getattr(user, "is_authenticated", False):
+        return None
+    if not getattr(settings, "COMMON_TENANT_AUTO_RESOLVE_SINGLE_MEMBERSHIP", False):
+        return None
+    memberships = list(
+        TenantMembership.objects.select_related("tenant")
+        .filter(user=user, is_active=True, tenant__status=Tenant.STATUS_ACTIVE)
+        .order_by("created_at")[:2]
+    )
+    if len(memberships) != 1:
+        return None
+    return memberships[0].tenant
+
+
 def resolve_request_tenant(request) -> Tenant | None:
+    # Resolution order is explicit and deterministic:
+    # 1) X-Tenant-Slug header
+    # 2) optional single-membership auto resolution (disabled by default)
+    # 3) global default tenant slug (when headers are not required)
     slug = extract_tenant_slug(request)
-    if not slug:
-        if getattr(settings, "COMMON_TENANT_HEADER_REQUIRED", True):
-            return None
-        slug = getattr(settings, "COMMON_TENANT_DEFAULT_SLUG", "").strip()
+    if slug:
+        return Tenant.objects.filter(slug=slug, status=Tenant.STATUS_ACTIVE).first()
+    tenant_from_membership = _resolve_single_membership_tenant(user=getattr(request, "user", None))
+    if tenant_from_membership is not None:
+        return tenant_from_membership
+    if getattr(settings, "COMMON_TENANT_HEADER_REQUIRED", True):
+        return None
+    slug = getattr(settings, "COMMON_TENANT_DEFAULT_SLUG", "").strip()
     if not slug:
         return None
     return Tenant.objects.filter(slug=slug, status=Tenant.STATUS_ACTIVE).first()
@@ -63,6 +86,6 @@ def require_tenant(request) -> Tenant:
     if tenant is None:
         raise ValidationError(
             "X-Tenant-Slug header is required and must reference an active tenant.",
-            details={"header": HeaderName.TENANT_SLUG},
+            details={"header": HeaderName.TENANT_SLUG.value},
         )
     return tenant

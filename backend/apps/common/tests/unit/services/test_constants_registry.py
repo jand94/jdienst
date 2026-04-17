@@ -7,5 +7,5 @@ def test_error_codes_are_stable_strings():
 
 
 def test_header_names_are_stable_strings():
-    assert HeaderName.IDEMPOTENCY_KEY == "Idempotency-Key"
-    assert HeaderName.TENANT_SLUG == "X-Tenant-Slug"
+    assert HeaderName.IDEMPOTENCY_KEY.value == "Idempotency-Key"
+    assert HeaderName.TENANT_SLUG.value == "X-Tenant-Slug"

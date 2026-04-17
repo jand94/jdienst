@@ -5,8 +5,8 @@ from typing import Any
 
 from apps.common.constants import HeaderName
 
-_REQUEST_ID_HEADERS = (HeaderName.REQUEST_ID, HeaderName.CORRELATION_ID)
-_TRACE_ID_HEADERS = (HeaderName.TRACE_ID, HeaderName.TRACE_PARENT)
+_REQUEST_ID_HEADERS = (HeaderName.REQUEST_ID.value, HeaderName.CORRELATION_ID.value)
+_TRACE_ID_HEADERS = (HeaderName.TRACE_ID.value, HeaderName.TRACE_PARENT.value)
 _REQUEST_CONTEXT: ContextVar[dict[str, Any]] = ContextVar("common_request_context", default={})
 
 

@@ -48,3 +48,24 @@ def test_platform_schema_tags_and_paths():
     assert paths[slo_path]["post"]["tags"] == ["Common - Platform - Operations"]
     assert paths[tenant_consistency_path]["post"]["tags"] == ["Common - Platform - Operations"]
     assert paths[soft_delete_cleanup_path]["post"]["tags"] == ["Common - Platform - Operations"]
+
+
+@pytest.mark.django_db
+def test_tenant_ops_schema_tags_and_paths():
+    schema = SchemaGenerator().get_schema(request=None, public=True)
+    paths = schema["paths"]
+
+    tenant_list_path = "/api/common/v1/tenants/"
+    membership_list_path = "/api/common/v1/tenant-memberships/"
+    tenant_status_path = "/api/common/v1/tenants/{id}/set-status/"
+    membership_deactivate_path = "/api/common/v1/tenant-memberships/{id}/deactivate/"
+
+    assert tenant_list_path in paths
+    assert membership_list_path in paths
+    assert tenant_status_path in paths
+    assert membership_deactivate_path in paths
+
+    assert paths[tenant_list_path]["get"]["tags"] == ["Common - Tenant Operations"]
+    assert paths[membership_list_path]["get"]["tags"] == ["Common - Tenant Membership Operations"]
+    assert paths[tenant_status_path]["post"]["tags"] == ["Common - Tenant Operations"]
+    assert paths[membership_deactivate_path]["post"]["tags"] == ["Common - Tenant Membership Operations"]
