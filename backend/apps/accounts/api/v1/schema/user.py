@@ -1,6 +1,10 @@
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema, extend_schema_view
 
-from apps.accounts.api.v1.serializers import AccountUserReadSerializer, AccountUserUpdateSerializer
+from apps.accounts.api.v1.serializers import (
+    AccountUserReadSerializer,
+    AccountUserTenantMembershipSerializer,
+    AccountUserUpdateSerializer,
+)
 
 
 account_user_viewset_schema = extend_schema_view(
@@ -73,5 +77,10 @@ account_user_viewset_schema = extend_schema_view(
                 description="Idempotency key for mutation safety.",
             )
         ],
+    ),
+    me_tenants=extend_schema(
+        tags=["Accounts - User - Self Service"],
+        summary="List active tenant memberships for authenticated user",
+        responses=AccountUserTenantMembershipSerializer(many=True),
     ),
 )

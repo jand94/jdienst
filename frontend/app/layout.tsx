@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter, Roboto } from "next/font/google";
 import "./globals.css";
+import Providers from "@/components/auth/Providers";
 import Footer from "@/components/layout/Footer";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/layout/Sidebar";
@@ -48,14 +49,16 @@ export default function RootLayout({
       className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable, robotoHeading.variable)}
     >
       <body className="min-h-full flex flex-col">
-        <Navbar />
-        <div className={responsiveTokens.shellContainer}>
-          <Sidebar />
-          <main id="main-content" className={responsiveTokens.pageContentPadding}>
-            {children}
-          </main>
-        </div>
-        <Footer />
+        <Providers>
+          <Navbar />
+          <div className={responsiveTokens.shellContainer}>
+            <Sidebar />
+            <main id="main-content" className={responsiveTokens.pageContentPadding}>
+              {children}
+            </main>
+          </div>
+          <Footer />
+        </Providers>
       </body>
     </html>
   );

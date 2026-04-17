@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { MenuIcon } from "lucide-react";
 
 import { navigationItems } from "@/components/layout/Sidebar";
+import { useAuth } from "@/hooks/use-auth";
 import { useCurrentBreakpoint, useResponsiveValue } from "@/hooks/use-breakpoint";
 import { responsiveTokens } from "@/lib/responsive-tokens";
 import { cn } from "@/lib/utils";
@@ -13,6 +14,8 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTi
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const auth = useAuth();
   const currentBreakpoint = useCurrentBreakpoint();
   const mobileSheetWidth = useResponsiveValue(
     {
@@ -23,6 +26,15 @@ export default function Navbar() {
   );
   const isActiveLink = (href: string) =>
     href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+  const visibleItems = navigationItems.filter((item) => {
+    if (item.requiresAuth && auth.status !== "authenticated") {
+      return false;
+    }
+    if (item.requiredRoles && !auth.hasRole(...item.requiredRoles)) {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur" data-breakpoint={currentBreakpoint}>
@@ -32,7 +44,7 @@ export default function Navbar() {
         </Link>
 
         <nav aria-label="Top Navigation" className="hidden items-center gap-5 md:flex">
-          {navigationItems.map((item) => {
+          {visibleItems.map((item) => {
             const isActive = isActiveLink(item.href);
 
             return (
@@ -51,47 +63,72 @@ export default function Navbar() {
           })}
         </nav>
 
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="sm" className="md:hidden" aria-label="Mobile Navigation oeffnen">
-              <MenuIcon />
-              Menue
+        <div className="flex items-center gap-2">
+          {auth.status === "authenticated" ? (
+            <>
+              <span className="hidden text-sm text-muted-foreground md:inline">
+                {auth.user?.username}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  void auth.signOut().then(() => {
+                    router.replace("/login");
+                  });
+                }}
+              >
+                Logout
+              </Button>
+            </>
+          ) : (
+            <Button asChild variant="default" size="sm">
+              <Link href="/login">Login</Link>
             </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className={cn("p-0", mobileSheetWidth)}>
-            <SheetHeader className={responsiveTokens.mobilePanelHeaderPadding}>
-              <SheetTitle>Navigation</SheetTitle>
-              <SheetDescription>Schnellzugriff auf die wichtigsten Bereiche.</SheetDescription>
-            </SheetHeader>
-            <div className={responsiveTokens.mobilePanelPadding}>
-              <nav aria-label="Mobile Navigation" className="w-full">
-                <ul className="space-y-1">
-                  {navigationItems.map((item) => {
-                    const isActive = isActiveLink(item.href);
+          )}
 
-                    return (
-                      <li key={item.href}>
-                        <SheetClose asChild>
-                          <Link
-                            href={item.href}
-                            aria-current={isActive ? "page" : undefined}
-                            className={cn(
-                              "block border-l-2 border-l-transparent px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-l-border hover:bg-accent/40 hover:text-foreground",
-                              isActive && "border-l-primary font-medium text-foreground",
-                            )}
-                          >
-                            <span className="font-medium">{item.label}</span>
-                            <p className="text-xs text-muted-foreground">{item.description}</p>
-                          </Link>
-                        </SheetClose>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </nav>
-            </div>
-          </SheetContent>
-        </Sheet>
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="md:hidden" aria-label="Mobile Navigation oeffnen">
+                <MenuIcon />
+                Menue
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className={cn("p-0", mobileSheetWidth)}>
+              <SheetHeader className={responsiveTokens.mobilePanelHeaderPadding}>
+                <SheetTitle>Navigation</SheetTitle>
+                <SheetDescription>Schnellzugriff auf die wichtigsten Bereiche.</SheetDescription>
+              </SheetHeader>
+              <div className={responsiveTokens.mobilePanelPadding}>
+                <nav aria-label="Mobile Navigation" className="w-full">
+                  <ul className="space-y-1">
+                    {visibleItems.map((item) => {
+                      const isActive = isActiveLink(item.href);
+
+                      return (
+                        <li key={item.href}>
+                          <SheetClose asChild>
+                            <Link
+                              href={item.href}
+                              aria-current={isActive ? "page" : undefined}
+                              className={cn(
+                                "block border-l-2 border-l-transparent px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-l-border hover:bg-accent/40 hover:text-foreground",
+                                isActive && "border-l-primary font-medium text-foreground",
+                              )}
+                            >
+                              <span className="font-medium">{item.label}</span>
+                              <p className="text-xs text-muted-foreground">{item.description}</p>
+                            </Link>
+                          </SheetClose>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </nav>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
     </header>
   );

@@ -211,6 +211,24 @@ def test_me_endpoint_rejects_user_without_tenant_membership(api_client):
 
 
 @pytest.mark.django_db
+def test_me_tenants_returns_active_memberships_without_tenant_header(api_client):
+    user = UserFactory()
+    tenant_a = TenantFactory(slug="tenant-a", name="Tenant A")
+    tenant_b = TenantFactory(slug="tenant-b", name="Tenant B")
+    TenantMembershipFactory(user=user, tenant=tenant_a, role="owner", is_active=True)
+    TenantMembershipFactory(user=user, tenant=tenant_b, role="member", is_active=False)
+    api_client.force_authenticate(user=user)
+
+    response = api_client.get(reverse("accounts-user-me-tenants"))
+
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data[0]["tenant_slug"] == "tenant-a"
+    assert response.data[0]["role"] == "owner"
+    assert response.data[0]["is_active"] is True
+
+
+@pytest.mark.django_db
 def test_retrieve_user_from_another_tenant_is_hidden(api_client):
     staff = UserFactory(is_staff=True)
     tenant_a = TenantFactory(slug="tenant-a")

@@ -8,7 +8,11 @@ from rest_framework.viewsets import GenericViewSet
 
 from apps.accounts.api.v1.permissions import IsSelfOrStaff, IsStaffUser
 from apps.accounts.api.v1.schema import account_user_viewset_schema
-from apps.accounts.api.v1.serializers import AccountUserReadSerializer, AccountUserUpdateSerializer
+from apps.accounts.api.v1.serializers import (
+    AccountUserReadSerializer,
+    AccountUserTenantMembershipSerializer,
+    AccountUserUpdateSerializer,
+)
 from apps.accounts.api.v1.services import deactivate_user, update_user_profile
 from apps.accounts.api.v1.services import log_user_list_access, log_user_read_access
 from apps.common.api.v1.services import (
@@ -19,6 +23,7 @@ from apps.common.api.v1.services import (
     require_idempotency_key,
 )
 from apps.accounts.models import User
+from apps.common.models import TenantMembership
 
 
 class AccountUserPagination(PageNumberPagination):
@@ -202,6 +207,21 @@ class AccountUserViewSet(
                 status.HTTP_200_OK,
             ),
         )
+
+    @extend_schema(
+        operation_id="accounts_v1_users_me_tenants_list",
+        tags=["Accounts - User - Self Service"],
+        summary="List active tenant memberships for authenticated user",
+        responses=AccountUserTenantMembershipSerializer(many=True),
+    )
+    @action(detail=False, methods=["get"], url_path="me/tenants")
+    def me_tenants(self, request):
+        memberships = TenantMembership.objects.select_related("tenant").filter(
+            user=request.user,
+            is_active=True,
+        ).order_by("tenant__slug")
+        serializer = AccountUserTenantMembershipSerializer(memberships, many=True)
+        return Response(serializer.data)
 
     @extend_schema(
         operation_id="accounts_v1_users_me_deactivate_create",

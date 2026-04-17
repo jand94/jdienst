@@ -1,6 +1,6 @@
 import { responsiveTokens } from "@/lib/responsive-tokens";
 
-export default function Home() {
+export default function DashboardPage() {
   return (
     <section className={responsiveTokens.sectionSpacing}>
       <header className={responsiveTokens.headerSpacing}>
