@@ -3,6 +3,7 @@ Django base settings for backend project.
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 
@@ -16,6 +17,21 @@ def _env_bool(name: str, default: bool = False) -> bool:
 def _env_list(name: str, default: str = "") -> list[str]:
     raw_value = os.getenv(name, default)
     return [item.strip() for item in raw_value.split(",") if item.strip()]
+
+
+def _env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return int(value)
+
+
+def _env_optional(name: str) -> str | None:
+    value = os.getenv(name)
+    if value is None:
+        return None
+    normalized = value.strip()
+    return normalized or None
 
 
 # Build paths inside the project like this: BASE_DIR / "subdir".
@@ -54,6 +70,7 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     "corsheaders",
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
     "django_filters",
     "drf_spectacular",
 ]
@@ -62,7 +79,8 @@ INTERNAL_APPS: list[str] = [
     # Domain apps are added here as they are introduced.
 
     "apps.accounts",
-    "apps.common",]
+    "apps.common",
+    "apps.auth",]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + INTERNAL_APPS
 
@@ -156,12 +174,33 @@ CORS_ALLOWED_ORIGINS = _env_list(
     "CORS_ALLOWED_ORIGINS",
     default="http://localhost:3000,http://127.0.0.1:3000",
 )
+CORS_ALLOW_CREDENTIALS = _env_bool("CORS_ALLOW_CREDENTIALS", default=True)
+
+AUTH_API_ENABLE_SESSION_AUTH = _env_bool("AUTH_API_ENABLE_SESSION_AUTH", default=True)
+AUTH_JWT_ALGORITHM = os.getenv("AUTH_JWT_ALGORITHM", "HS256")
+AUTH_JWT_SIGNING_KEY = _env_optional("AUTH_JWT_SIGNING_KEY") or SECRET_KEY
+AUTH_JWT_VERIFYING_KEY = _env_optional("AUTH_JWT_VERIFYING_KEY")
+AUTH_JWT_AUDIENCE = _env_optional("AUTH_JWT_AUDIENCE")
+AUTH_JWT_ISSUER = _env_optional("AUTH_JWT_ISSUER")
+AUTH_JWT_JWK_URL = _env_optional("AUTH_JWT_JWK_URL")
+
+_default_authentication_classes = [
+    "rest_framework_simplejwt.authentication.JWTAuthentication",
+]
+if AUTH_API_ENABLE_SESSION_AUTH:
+    _default_authentication_classes.append("rest_framework.authentication.SessionAuthentication")
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_AUTHENTICATION_CLASSES": _default_authentication_classes,
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
     ],
+    "DEFAULT_THROTTLE_RATES": {
+        "auth_login": os.getenv("AUTH_LOGIN_RATE", "10/minute"),
+        "auth_refresh": os.getenv("AUTH_REFRESH_RATE", "30/hour"),
+        "auth_logout": os.getenv("AUTH_LOGOUT_RATE", "60/hour"),
+    },
     "EXCEPTION_HANDLER": "apps.common.api.v1.services.error_mapping_service.api_exception_handler",
 }
 
@@ -169,9 +208,46 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "jdienst API",
     "DESCRIPTION": "OpenAPI schema for the jdienst backend.",
     "VERSION": "1.0.0",
+    "APPEND_COMPONENTS": {
+        "securitySchemes": {
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+            }
+        }
+    },
 }
 
 AUTH_USER_MODEL = "accounts.User"
+
+AUTH_ACCESS_TOKEN_LIFETIME_MINUTES = _env_int("AUTH_ACCESS_TOKEN_LIFETIME_MINUTES", 10)
+AUTH_REFRESH_TOKEN_LIFETIME_DAYS = _env_int("AUTH_REFRESH_TOKEN_LIFETIME_DAYS", 14)
+AUTH_REFRESH_COOKIE_NAME = os.getenv("AUTH_REFRESH_COOKIE_NAME", "refresh_token")
+AUTH_REFRESH_COOKIE_SECURE = _env_bool("AUTH_REFRESH_COOKIE_SECURE", default=True)
+AUTH_REFRESH_COOKIE_HTTPONLY = _env_bool("AUTH_REFRESH_COOKIE_HTTPONLY", default=True)
+AUTH_REFRESH_COOKIE_SAMESITE = os.getenv("AUTH_REFRESH_COOKIE_SAMESITE", "Lax")
+AUTH_REFRESH_COOKIE_DOMAIN = os.getenv("AUTH_REFRESH_COOKIE_DOMAIN", None)
+AUTH_REFRESH_COOKIE_PATH = os.getenv("AUTH_REFRESH_COOKIE_PATH", "/api/auth/")
+AUTH_REFRESH_COOKIE_MAX_AGE_SECONDS = _env_int(
+    "AUTH_REFRESH_COOKIE_MAX_AGE_SECONDS",
+    AUTH_REFRESH_TOKEN_LIFETIME_DAYS * 24 * 60 * 60,
+)
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=AUTH_ACCESS_TOKEN_LIFETIME_MINUTES),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=AUTH_REFRESH_TOKEN_LIFETIME_DAYS),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": True,
+    "ALGORITHM": AUTH_JWT_ALGORITHM,
+    "SIGNING_KEY": AUTH_JWT_SIGNING_KEY,
+    "VERIFYING_KEY": AUTH_JWT_VERIFYING_KEY,
+    "AUDIENCE": AUTH_JWT_AUDIENCE,
+    "ISSUER": AUTH_JWT_ISSUER,
+    "JWK_URL": AUTH_JWT_JWK_URL,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
 
 AUDIT_READER_GROUPS = _env_list("AUDIT_READER_GROUPS", default="AuditReader")
 AUDIT_INTEGRITY_SIGNING_KEY = os.getenv("AUDIT_INTEGRITY_SIGNING_KEY", SECRET_KEY)
