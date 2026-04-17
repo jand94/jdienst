@@ -5,7 +5,7 @@ BACKEND_SERVICE := backend
 FRONTEND_SERVICE := frontend
 ENV_FILE := .env
 
-.PHONY: help init-env bootstrap up up-d down build logs logs-frontend logs-fe logs-backend logs-be ps shell be-shell fe-shell restart-frontend restart-fe restart-backend restart-be makemigrations migrate create-superuser createsuperuser superuser test test-be schema schema-validate worker validate-agents-manifest validate-backend-conventions ci
+.PHONY: help init-env bootstrap up up-d down build logs logs-frontend logs-fe logs-backend logs-be ps shell be-shell fe-shell restart-frontend restart-fe restart-backend restart-be recreate-frontend recreate-fe recreate-backend recreate-be makemigrations migrate create-superuser createsuperuser superuser test test-be schema schema-validate worker validate-agents-manifest validate-backend-conventions ci
 
 help: ## Zeigt verfügbare Make-Targets
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z0-9_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -65,6 +65,16 @@ restart-backend: ## Restart des Backend-Services
 	$(COMPOSE) restart $(BACKEND_SERVICE)
 
 restart-be: restart-backend ## Alias für Backend-Restart
+
+recreate-frontend: ## Recreate des Frontend-Services (z. B. nach Port-/Compose-Aenderungen)
+	$(COMPOSE) up -d --force-recreate --no-deps $(FRONTEND_SERVICE)
+
+recreate-fe: recreate-frontend ## Alias fuer Frontend-Recreate
+
+recreate-backend: ## Recreate des Backend-Services (z. B. nach Compose-Aenderungen)
+	$(COMPOSE) up -d --force-recreate --no-deps $(BACKEND_SERVICE)
+
+recreate-be: recreate-backend ## Alias fuer Backend-Recreate
 
 makemigrations: ## Erzeugt neue Django-Migrationsdateien
 	$(COMPOSE) exec $(BACKEND_SERVICE) python manage.py makemigrations
