@@ -16,6 +16,8 @@ from apps.common.api.v1.services import (
     archive_events_by_retention_policy,
     archive_old_events,
     collect_audit_health_snapshot,
+    extract_audit_correlation_ids,
+    ensure_audit_operator_roles,
     ensure_audit_reader_roles,
     export_events_for_siem,
     verify_integrity_chain,
@@ -50,10 +52,13 @@ class AuditOperationsViewSet(GenericViewSet):
     def verify_integrity(self, request):
         serializer = AuditIntegrityVerifyRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        request_id, trace_id = extract_audit_correlation_ids(request)
         verification = verify_integrity_chain(
             limit=serializer.validated_data.get("limit"),
             create_checkpoint=serializer.validated_data.get("create_checkpoint", False),
             source="api",
+            request_id=request_id,
+            trace_id=trace_id,
         )
         return Response(
             {
@@ -97,7 +102,10 @@ class AuditOperationsViewSet(GenericViewSet):
 
     @action(detail=False, methods=["post"], url_path="setup-roles")
     def setup_roles(self, request):
-        role_names, created_total = ensure_audit_reader_roles()
+        reader_role_names, reader_created_total = ensure_audit_reader_roles()
+        operator_role_names, operator_created_total = ensure_audit_operator_roles()
+        role_names = [*reader_role_names, *operator_role_names]
+        created_total = reader_created_total + operator_created_total
         return Response(
             {
                 "roles": role_names,

@@ -45,6 +45,7 @@ Empfohlene Alerts:
 - Ausfall der Audit-Schreibpfade
 - dauerhaft hohe Fehlerrate
 - signifikante Event-Abweichungen gegen Baseline
+- stale/missing Integritaetsverifikation (`audit_health_snapshot --require-fresh-integrity`)
 
 ## Incident- und Forensik-Ablauf
 
@@ -66,6 +67,8 @@ Empfohlene Alerts:
 - Regelmaessige Testlaeufe fuer Export-/Archivpfade.
 - Stichproben zur Datenlesbarkeit archivierter Events.
 - Monitoring-Checks als Bestandteil operativer Readiness.
+- Integritaetsfrische ueber `python manage.py audit_health_snapshot --require-fresh-integrity` pruefen.
+- Export-Backlog-Schwellen ueber `python manage.py audit_health_snapshot --max-unexported-events <n>` absichern.
 
 ## Mindest-Evidenzkatalog (Enterprise-Restluecke)
 

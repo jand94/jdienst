@@ -52,7 +52,7 @@ Verboten:
 
 - `ip_address` und `user_agent` nur als notwendiger Sicherheitskontext.
 - In Proxy-Setups muss die vertrauenswuerdige Ermittlung der Client-IP dokumentiert sein.
-- offen: `request_id`/`trace_id` fuer forensische Korrelation standardisieren.
+- `request_id`/`trace_id` als forensische Korrelation in API-getriebenen Events standardisieren.
 
 ## Verifikation (Pflicht fuer Aenderungen)
 
@@ -65,7 +65,7 @@ Verboten:
 
 1. Auditor-Rollenmodell als dauerhaftes Least-Privilege-Konzept.
 2. Audit-of-audit fuer alle relevanten Reader-Zugriffe.
-3. Verbindlicher Standard fuer Request-/Trace-Korrelation im Event-Metadatenmodell.
+3. Verbindliche Anwendung der Request-/Trace-Korrelation in neuen Domain-Integrationen.
 
 ## Querverweise
 

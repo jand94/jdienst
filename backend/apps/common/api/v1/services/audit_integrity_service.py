@@ -110,6 +110,8 @@ def verify_integrity_chain(
     limit: int | None = None,
     create_checkpoint: bool = False,
     source: str = "system",
+    request_id: str | None = None,
+    trace_id: str | None = None,
 ) -> AuditIntegrityVerification:
     normalized_limit = _normalize_limit(limit)
     queryset = _build_chain_queryset(limit=normalized_limit)
@@ -151,6 +153,8 @@ def verify_integrity_chain(
                 "status": verification.status,
                 "checked_events": verification.checked_events,
             },
+            request_id=request_id,
+            trace_id=trace_id,
         )
 
     latest_checkpoint = AuditIntegrityCheckpoint.objects.order_by("-sequence").first()

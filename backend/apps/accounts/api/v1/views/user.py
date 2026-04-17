@@ -11,6 +11,7 @@ from apps.accounts.api.v1.schema import account_user_viewset_schema
 from apps.accounts.api.v1.serializers import AccountUserReadSerializer, AccountUserUpdateSerializer
 from apps.accounts.api.v1.services import deactivate_user, update_user_profile
 from apps.accounts.api.v1.services import log_user_list_access, log_user_read_access
+from apps.common.api.v1.services import extract_audit_correlation_ids
 from apps.accounts.models import User
 
 
@@ -49,13 +50,27 @@ class AccountUserViewSet(
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
-        log_user_list_access(actor=request.user, source="api")
+        request_id, trace_id = extract_audit_correlation_ids(request)
+        log_user_list_access(
+            actor=request.user,
+            source="api",
+            request_id=request_id,
+            trace_id=trace_id,
+        )
         return response
 
     def retrieve(self, request, *args, **kwargs):
         target = self.get_object()
         response = super().retrieve(request, *args, **kwargs)
-        log_user_read_access(actor=request.user, target=target, source="api", scope="detail")
+        request_id, trace_id = extract_audit_correlation_ids(request)
+        log_user_read_access(
+            actor=request.user,
+            target=target,
+            source="api",
+            scope="detail",
+            request_id=request_id,
+            trace_id=trace_id,
+        )
         return response
 
     @action(detail=False, methods=["get", "patch"], url_path="me")
@@ -73,6 +88,7 @@ class AccountUserViewSet(
         responses=AccountUserReadSerializer,
     )
     def me(self, request):
+        request_id, trace_id = extract_audit_correlation_ids(request)
         if request.method == "GET":
             serializer = AccountUserReadSerializer(request.user)
             log_user_read_access(
@@ -80,6 +96,8 @@ class AccountUserViewSet(
                 target=request.user,
                 source="api",
                 scope="self",
+                request_id=request_id,
+                trace_id=trace_id,
             )
             return Response(serializer.data)
 
@@ -93,6 +111,8 @@ class AccountUserViewSet(
             actor=request.user,
             data=serializer.validated_data,
             source="api",
+            request_id=request_id,
+            trace_id=trace_id,
         )
         return Response(AccountUserReadSerializer(user).data)
 
@@ -104,11 +124,18 @@ class AccountUserViewSet(
         responses=AccountUserReadSerializer,
     )
     def deactivate_me(self, request):
-        user = deactivate_user(actor=request.user, source="api")
+        request_id, trace_id = extract_audit_correlation_ids(request)
+        user = deactivate_user(
+            actor=request.user,
+            source="api",
+            request_id=request_id,
+            trace_id=trace_id,
+        )
         return Response(AccountUserReadSerializer(user).data, status=status.HTTP_200_OK)
 
     def partial_update(self, request, *args, **kwargs):
         target = self.get_object()
+        request_id, trace_id = extract_audit_correlation_ids(request)
         serializer = AccountUserUpdateSerializer(
             data=request.data,
             partial=True,
@@ -119,11 +146,14 @@ class AccountUserViewSet(
             actor=target,
             data=serializer.validated_data,
             source="api",
+            request_id=request_id,
+            trace_id=trace_id,
         )
         return Response(AccountUserReadSerializer(updated).data)
 
     def update(self, request, *args, **kwargs):
         target = self.get_object()
+        request_id, trace_id = extract_audit_correlation_ids(request)
         serializer = AccountUserUpdateSerializer(
             data=request.data,
             partial=False,
@@ -134,5 +164,7 @@ class AccountUserViewSet(
             actor=target,
             data=serializer.validated_data,
             source="api",
+            request_id=request_id,
+            trace_id=trace_id,
         )
         return Response(AccountUserReadSerializer(updated).data)

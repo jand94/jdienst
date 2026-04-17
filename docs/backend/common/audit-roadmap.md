@@ -146,7 +146,7 @@ Betriebsreife Auditierung mit Retention, Archivierung, Monitoring und SIEM-Expor
 ## Fokussierter Rest-Backlog (naechste Schritte)
 
 1. Auditor-Rollenmodell und Audit-of-audit fuer Reader etablieren.
-2. Request-/Trace-Korrelation als Pflichtmetadaten standardisieren.
+2. Request-/Trace-Korrelation in neuen Domain-Flows konsequent mitziehen und reviewen.
 3. Integritaets-Härtung mit externem Signaturnachweis und periodischer Verifikation.
 4. Betriebsreife fuer Archiv/SIEM: SLOs, Alerts, Restore-Drills, Evidenzkatalog.
 5. Coverage-Gap-Closing fuer kritische Domain-Flows ausserhalb bereits umgesetzter Services.

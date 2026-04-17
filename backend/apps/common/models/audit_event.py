@@ -25,6 +25,9 @@ class AuditEvent(UUIDPrimaryKeyModel, TimeStampedModel):
     exported_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:
+        permissions = [
+            ("operate_auditevent", "Can execute audit operator actions"),
+        ]
         indexes = [
             models.Index(fields=["target_model", "target_id"]),
             models.Index(fields=["action", "created_at"]),

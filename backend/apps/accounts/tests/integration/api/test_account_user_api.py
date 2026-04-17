@@ -106,3 +106,22 @@ def test_retrieve_user_logs_read_access_for_staff(api_client):
         actor=staff,
         metadata__scope="detail",
     ).exists()
+
+
+@pytest.mark.django_db
+def test_deactivate_me_deactivates_user_and_writes_audit_event(api_client):
+    user = UserFactory(is_active=True)
+    api_client.force_authenticate(user=user)
+
+    response = api_client.post(reverse("accounts-user-deactivate-me"))
+
+    assert response.status_code == 200
+    user.refresh_from_db()
+    assert user.is_active is False
+    assert AuditEvent.objects.filter(
+        action="accounts.user.deactivated",
+        target_model="accounts.User",
+        target_id=str(user.pk),
+        actor=user,
+        metadata__source="api",
+    ).exists()

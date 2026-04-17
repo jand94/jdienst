@@ -29,7 +29,7 @@ Es dient als Entscheidungsgrundlage fuer Architektur, Betrieb und Roadmap.
 | Event-Coverage | Teilweise umgesetzt | Kritische Domain-Flows app-weit konsistent auditiert | Hoch |
 | Integritaet | Weit umgesetzt | Externer Signatur-/WORM-Nachweis, periodische Verifikation | Mittel |
 | Zugriffskontrolle | Teilweise umgesetzt | Auditor-Rollenmodell + Audit-of-audit fuer Lesezugriffe | Hoch |
-| Forensik-Kontext | Teilweise umgesetzt | Request-/Trace-Korrelation als Pflichtmetadaten | Mittel |
+| Forensik-Kontext | Weitgehend umgesetzt | Request-/Trace-Korrelation ist standardisiert; Rest: flaechige Adoption in neuen Domains | Mittel |
 | Betrieb | Teilweise umgesetzt | Verbindliche Retention-Klassen, Restore-Evidenz, Alert-SLOs | Hoch |
 | Externe Nachweisbarkeit | Basis umgesetzt | SIEM-Prozessreife inkl. Runbooks/Kontrollnachweise | Mittel |
 

@@ -21,9 +21,20 @@ def test_audit_ops_health_snapshot_requires_operator_permission(api_client):
 
 
 @pytest.mark.django_db
+def test_audit_ops_health_snapshot_denies_reader_without_operator_permission(api_client):
+    reader = UserFactory(is_staff=True)
+    reader.user_permissions.add(Permission.objects.get(codename="view_auditevent"))
+    api_client.force_authenticate(user=reader)
+
+    response = api_client.get(reverse("common-audit-ops-health-snapshot"))
+
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
 def test_audit_ops_health_snapshot_returns_payload_for_operator(api_client):
     operator = UserFactory(is_staff=True)
-    operator.user_permissions.add(Permission.objects.get(codename="view_auditevent"))
+    operator.user_permissions.add(Permission.objects.get(codename="operate_auditevent"))
     record_audit_event(
         action="auth.login.failed",
         target_model="accounts.User",
@@ -38,12 +49,13 @@ def test_audit_ops_health_snapshot_returns_payload_for_operator(api_client):
     assert response.status_code == 200
     assert response.data["window_hours"] == 48
     assert "retention_class_counts" in response.data
+    assert "integrity_verification" in response.data
 
 
 @pytest.mark.django_db
 def test_audit_ops_verify_integrity_creates_verification(api_client):
     operator = UserFactory(is_staff=True)
-    operator.user_permissions.add(Permission.objects.get(codename="view_auditevent"))
+    operator.user_permissions.add(Permission.objects.get(codename="operate_auditevent"))
     record_audit_event(
         action="security.permission.denied",
         target_model="accounts.User",
@@ -67,7 +79,7 @@ def test_audit_ops_verify_integrity_creates_verification(api_client):
 @pytest.mark.django_db
 def test_audit_ops_archive_events_supports_before_days(api_client):
     operator = UserFactory(is_staff=True)
-    operator.user_permissions.add(Permission.objects.get(codename="view_auditevent"))
+    operator.user_permissions.add(Permission.objects.get(codename="operate_auditevent"))
     event = record_audit_event(
         action="accounts.user.updated",
         target_model="accounts.User",
@@ -93,7 +105,7 @@ def test_audit_ops_archive_events_supports_before_days(api_client):
 @pytest.mark.django_db
 def test_audit_ops_siem_export_preview_does_not_mark_events_exported(api_client):
     operator = UserFactory(is_staff=True)
-    operator.user_permissions.add(Permission.objects.get(codename="view_auditevent"))
+    operator.user_permissions.add(Permission.objects.get(codename="operate_auditevent"))
     event = record_audit_event(
         action="security.permission.denied",
         target_model="accounts.User",
@@ -109,3 +121,16 @@ def test_audit_ops_siem_export_preview_does_not_mark_events_exported(api_client)
     assert response.data["exportable_count"] >= 1
     event.refresh_from_db()
     assert event.exported_at is None
+
+
+@pytest.mark.django_db
+def test_audit_ops_setup_roles_returns_reader_and_operator_roles(api_client):
+    operator = UserFactory(is_staff=True)
+    operator.user_permissions.add(Permission.objects.get(codename="operate_auditevent"))
+    api_client.force_authenticate(user=operator)
+
+    response = api_client.post(reverse("common-audit-ops-setup-roles"))
+
+    assert response.status_code == 200
+    assert "AuditReader" in response.data["roles"]
+    assert "AuditOperator" in response.data["roles"]

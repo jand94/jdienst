@@ -30,8 +30,11 @@ def _normalize_target_id(target_id: str) -> str:
 
 def _normalize_metadata(metadata: dict[str, Any] | None) -> dict[str, Any]:
     normalized = _sanitize_metadata(metadata or {})
-    if "source" not in normalized:
+    source = normalized.get("source")
+    if not isinstance(source, str) or not source.strip():
         normalized["source"] = "system"
+    normalized["request_id"] = normalized.get("request_id")
+    normalized["trace_id"] = normalized.get("trace_id")
     return normalized
 
 
@@ -104,6 +107,8 @@ def record_audit_event(
     metadata: dict[str, Any] | None = None,
     ip_address: str | None = None,
     user_agent: str = "",
+    request_id: str | None = None,
+    trace_id: str | None = None,
 ) -> AuditEvent:
     if not action.strip():
         raise InvalidAuditEvent("action must not be empty")
@@ -111,7 +116,12 @@ def record_audit_event(
         raise InvalidAuditEvent("target_model must not be empty")
 
     normalized_target_id = _normalize_target_id(target_id)
-    normalized_metadata = _normalize_metadata(metadata)
+    merged_metadata = dict(metadata or {})
+    if request_id is not None:
+        merged_metadata["request_id"] = request_id
+    if trace_id is not None:
+        merged_metadata["trace_id"] = trace_id
+    normalized_metadata = _normalize_metadata(merged_metadata)
 
     with transaction.atomic():
         chain_state = _lock_chain_state()

@@ -1,7 +1,7 @@
 from rest_framework.permissions import BasePermission
 
 from apps.accounts.api.v1.services import log_permission_denied
-from apps.common.api.v1.services import is_audit_reader
+from apps.common.api.v1.services import extract_audit_correlation_ids, is_audit_reader
 
 
 class IsAuditReader(BasePermission):
@@ -14,10 +14,15 @@ class IsAuditReader(BasePermission):
         if is_audit_reader(user):
             return True
 
+        request_id, trace_id = extract_audit_correlation_ids(request)
         log_permission_denied(
             actor=user,
             resource="common.audit_event.read",
             source="api",
-            metadata={"reason": "missing_common.view_auditevent"},
+            request_id=request_id,
+            trace_id=trace_id,
+            metadata={
+                "reason": "missing_common.view_auditevent",
+            },
         )
         return False

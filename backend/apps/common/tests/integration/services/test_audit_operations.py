@@ -5,6 +5,7 @@ from datetime import timedelta
 import pytest
 from django.contrib.auth.models import Group, Permission
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.utils import timezone
 
 from apps.common.api.v1.services import collect_audit_health_snapshot
@@ -101,9 +102,12 @@ def test_audit_setup_roles_assigns_audit_view_permission():
     call_command("audit_setup_roles", stdout=output)
 
     group = Group.objects.get(name="AuditReader")
-    permission = Permission.objects.get(codename="view_auditevent")
+    reader_permission = Permission.objects.get(codename="view_auditevent")
+    operator_group = Group.objects.get(name="AuditOperator")
+    operator_permission = Permission.objects.get(codename="operate_auditevent")
 
-    assert permission in group.permissions.all()
+    assert reader_permission in group.permissions.all()
+    assert operator_permission in operator_group.permissions.all()
 
 
 @pytest.mark.django_db
@@ -121,6 +125,7 @@ def test_audit_health_snapshot_command_returns_json_payload():
     payload = json.loads(output.getvalue())
     assert payload["window_hours"] == 72
     assert "retention_class_counts" in payload
+    assert "integrity_verification" in payload
 
 
 @pytest.mark.django_db
@@ -173,3 +178,17 @@ def test_collect_audit_health_snapshot_returns_consistent_aggregates():
     assert snapshot["retention_class_counts"]["operational"] == 1
     assert snapshot["retention_class_counts"]["compliance"] == 1
     assert snapshot["volume_by_action"]["security.permission.denied"] == 1
+    assert "integrity_verification" in snapshot
+
+
+@pytest.mark.django_db
+def test_audit_health_snapshot_command_can_fail_on_stale_integrity():
+    record_audit_event(
+        action="accounts.user.updated",
+        target_model="accounts.User",
+        target_id="31",
+        metadata={"source": "api"},
+    )
+
+    with pytest.raises(CommandError, match="stale or missing"):
+        call_command("audit_health_snapshot", require_fresh_integrity=True)

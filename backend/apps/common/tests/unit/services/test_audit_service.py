@@ -22,7 +22,11 @@ def test_record_audit_event_persists_expected_fields():
     assert event.action == "entity.updated"
     assert event.target_model == "accounts.User"
     assert event.target_id == str(actor.pk)
-    assert event.metadata == {"source": "unit-test"}
+    assert event.metadata == {
+        "source": "unit-test",
+        "request_id": None,
+        "trace_id": None,
+    }
 
 
 @pytest.mark.django_db
@@ -44,8 +48,26 @@ def test_record_audit_event_redacts_sensitive_metadata_keys():
 
     assert event.metadata == {
         "source": "api",
+        "request_id": None,
+        "trace_id": None,
         "nested": {"safe": "ok"},
     }
+
+
+@pytest.mark.django_db
+def test_record_audit_event_accepts_request_and_trace_identifiers():
+    event = record_audit_event(
+        action="auth.login",
+        target_model="accounts.User",
+        target_id="42",
+        metadata={"source": "api"},
+        request_id="req-123",
+        trace_id="trace-123",
+    )
+
+    assert event.metadata["source"] == "api"
+    assert event.metadata["request_id"] == "req-123"
+    assert event.metadata["trace_id"] == "trace-123"
 
 
 @pytest.mark.django_db

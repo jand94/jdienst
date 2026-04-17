@@ -82,6 +82,7 @@ class AuditHealthSnapshotResponseSerializer(serializers.Serializer):
     events_not_exported = serializers.IntegerField()
     retention_class_counts = serializers.DictField(child=serializers.IntegerField())
     volume_by_action = serializers.DictField(child=serializers.IntegerField())
+    integrity_verification = serializers.JSONField()
 
 
 class AuditIntegrityVerifyResponseSerializer(serializers.Serializer):

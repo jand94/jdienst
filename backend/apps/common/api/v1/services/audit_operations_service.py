@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+from django.conf import settings
 from django.db.models import Count
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.common.models import AuditEvent
+from apps.common.models import AuditEvent, AuditIntegrityVerification
 
 RETENTION_DAYS = {
     "security": 3650,
@@ -121,6 +122,27 @@ def collect_audit_health_snapshot(*, window_hours: int = 24) -> dict:
         row["action"]: row["total"]
         for row in window_qs.values("action").annotate(total=Count("id"))
     }
+    latest_verification = AuditIntegrityVerification.objects.order_by("-finished_at", "-created_at").first()
+    verification_max_age_hours = getattr(settings, "AUDIT_VERIFICATION_MAX_AGE_HOURS", 24)
+    verification_status = {
+        "is_fresh": False,
+        "max_age_hours": verification_max_age_hours,
+        "latest_id": None,
+        "latest_status": None,
+        "latest_finished_at": None,
+        "latest_checked_events": 0,
+    }
+    if latest_verification and latest_verification.finished_at:
+        verification_status = {
+            "is_fresh": latest_verification.finished_at
+            >= timezone.now() - timedelta(hours=verification_max_age_hours),
+            "max_age_hours": verification_max_age_hours,
+            "latest_id": str(latest_verification.pk),
+            "latest_status": latest_verification.status,
+            "latest_finished_at": latest_verification.finished_at.isoformat(),
+            "latest_checked_events": latest_verification.checked_events,
+        }
+
     return {
         "window_hours": window_hours,
         "events_total": aggregate_counts["events_total"],
@@ -131,4 +153,5 @@ def collect_audit_health_snapshot(*, window_hours: int = 24) -> dict:
             for retention_class in RETENTION_DAYS
         },
         "volume_by_action": volume_by_action,
+        "integrity_verification": verification_status,
     }

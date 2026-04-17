@@ -92,6 +92,45 @@ jobs:
       - name: Validate OpenAPI schema
         run: python manage.py spectacular --validate --fail-on-warn
 
+  audit_policy:
+    name: Audit Policy & Schema Guards
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs:
+      - backend_quality
+      - api_schema
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-django
+
+      - name: Run audit coverage test suite
+        run: |
+          pytest \
+            apps/common/tests/unit/services/test_audit_service.py \
+            apps/common/tests/unit/services/test_audit_reader_service.py \
+            apps/common/tests/integration/api/test_audit_event_api.py \
+            apps/common/tests/integration/api/test_audit_ops_api.py \
+            apps/common/tests/integration/api/test_audit_schema_contract.py \
+            apps/accounts/tests/unit/services/test_account_user_service.py \
+            apps/accounts/tests/unit/services/test_account_security_service.py \
+            apps/accounts/tests/integration/api/test_account_user_api.py
+
   frontend_quality:
     name: Frontend Quality
     runs-on: ubuntu-latest

@@ -4,7 +4,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from apps.common.api.v1.permissions import IsAuditReader
-from apps.common.api.v1.services import log_audit_reader_access
+from apps.common.api.v1.services import extract_audit_correlation_ids, log_audit_reader_access
 from apps.common.api.v1.schema import audit_event_viewset_schema
 from apps.common.api.v1.serializers import AuditEventSerializer
 from apps.common.models import AuditEvent
@@ -29,11 +29,14 @@ class AuditEventViewSet(ReadOnlyModelViewSet):
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
+        request_id, trace_id = extract_audit_correlation_ids(request)
         log_audit_reader_access(
             actor=request.user,
             access_type="list",
             target_id="collection",
             source="api",
+            request_id=request_id,
+            trace_id=trace_id,
             metadata={
                 "filters": {
                     key: request.query_params.get(key)
@@ -47,10 +50,13 @@ class AuditEventViewSet(ReadOnlyModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         response = super().retrieve(request, *args, **kwargs)
+        request_id, trace_id = extract_audit_correlation_ids(request)
         log_audit_reader_access(
             actor=request.user,
             access_type="retrieve",
             target_id=str(instance.pk),
             source="api",
+            request_id=request_id,
+            trace_id=trace_id,
         )
         return response

@@ -10,12 +10,14 @@ von `docs/engineering/security.md`, `docs/engineering/backend.md` und `docs/engi
 - Erfolgreicher Lauf von `audit_archive_events` (mit Parametern und Zeitstempel).
 - Erfolgreicher Lauf von `audit_export_siem` inkl. Export-/Fehler-Summary.
 - Integritaetsnachweis via `audit_verify_integrity` inkl. Status und gepruefter Event-Anzahl.
+- Frische-Guard via `audit_health_snapshot --require-fresh-integrity`.
 - Nachweis, dass Audit-Reader-Rollen mit `audit_setup_roles` konsistent sind.
 
 ## Pflichtnachweise pro Quartal
 
 - Restore-Stichprobe archivierter Audit-Events (Ablauf, Ergebnis, Abweichungen).
 - Review der Alert-Schwellen fuer Audit-Write-Fehler, Export-Backlog und Anomalien.
+- Nachweis der Schwellwerte fuer `--max-unexported-events` und Reaktionszeit bei Verstoessen.
 - Security-Review fuer geaenderte Audit- oder SIEM-Exportpfade.
 
 ## Artefakt-Format (Mindeststandard)

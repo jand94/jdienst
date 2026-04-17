@@ -40,3 +40,19 @@ def test_log_permission_denied_creates_event_with_resource():
     assert event.action == "security.permission.denied"
     assert event.metadata["resource"] == "common.audit_event.list"
     assert event.metadata["source"] == "api"
+
+
+@pytest.mark.django_db
+def test_log_auth_attempt_persists_correlation_identifiers():
+    actor = UserFactory()
+
+    event = log_auth_attempt(
+        actor=actor,
+        success=True,
+        source="api",
+        request_id="req-42",
+        trace_id="trace-42",
+    )
+
+    assert event.metadata["request_id"] == "req-42"
+    assert event.metadata["trace_id"] == "trace-42"

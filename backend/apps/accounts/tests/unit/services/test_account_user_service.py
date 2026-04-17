@@ -42,3 +42,25 @@ def test_deactivate_user_sets_is_active_false_and_writes_audit_event():
     ).first()
     assert event is not None
     assert event.metadata["source"] == "api"
+
+
+@pytest.mark.django_db
+def test_update_user_profile_writes_correlation_identifiers():
+    actor = UserFactory(first_name="Old")
+
+    update_user_profile(
+        actor=actor,
+        data={"first_name": "New"},
+        source="api",
+        request_id="req-99",
+        trace_id="trace-99",
+    )
+
+    event = AuditEvent.objects.filter(
+        action="accounts.user.updated",
+        target_model="accounts.User",
+        target_id=str(actor.pk),
+    ).first()
+    assert event is not None
+    assert event.metadata["request_id"] == "req-99"
+    assert event.metadata["trace_id"] == "trace-99"

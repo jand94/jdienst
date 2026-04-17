@@ -54,12 +54,16 @@ def test_audit_event_api_lists_and_filters_for_auditor_role():
     assert response.status_code == 200
     assert response.data["count"] == 1
     assert response.data["results"][0]["id"] == str(matching.pk)
-    assert AuditEvent.objects.filter(
+    read_event = AuditEvent.objects.filter(
         action="common.audit_event.read",
         target_model="common.AuditEvent",
         target_id="collection",
         actor=auditor,
-    ).exists()
+    ).first()
+    assert read_event is not None
+    assert read_event.metadata["source"] == "api"
+    assert "request_id" in read_event.metadata
+    assert "trace_id" in read_event.metadata
 
 
 @pytest.mark.django_db
@@ -81,9 +85,13 @@ def test_audit_event_api_allows_group_based_auditor_role():
 
     assert response.status_code == 200
     assert response.data["id"] == str(event.pk)
-    assert AuditEvent.objects.filter(
+    read_event = AuditEvent.objects.filter(
         action="common.audit_event.read",
         target_model="common.AuditEvent",
         target_id=str(event.pk),
         actor=auditor,
-    ).exists()
+    ).first()
+    assert read_event is not None
+    assert read_event.metadata["source"] == "api"
+    assert "request_id" in read_event.metadata
+    assert "trace_id" in read_event.metadata

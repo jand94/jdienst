@@ -20,6 +20,7 @@ Einheitliche, nachvollziehbare Auditierung fuer alle kuenftigen Domain-Apps.
   - validiert Pflichtfelder (`action`, `target_model`, `target_id`)
   - sanitisiert Metadaten rekursiv
   - entfernt sensible Keys (z. B. `password`, `token`, `authorization`)
+  - normalisiert Metadaten-Kontrakt (`source`, `request_id`, `trace_id`)
   - erzeugt Integritaetskette (`previous_hash` -> `integrity_hash`)
 
 ### Event-Konventionen (Pflicht fuer neue Events)
@@ -28,6 +29,8 @@ Einheitliche, nachvollziehbare Auditierung fuer alle kuenftigen Domain-Apps.
 - `target_model`: Django Label-Format, z. B. `accounts.User`
 - `target_id`: technische Primärschlüssel-Repräsentation als String
 - `metadata.source`: Quelle des Events (`django-admin`, `api`, `task`, `system`)
+- `metadata.request_id`: Request-Korrelation, bei nicht-requestbasierten Events `null`
+- `metadata.trace_id`: Trace-/Span-Korrelation, bei nicht-requestbasierten Events `null`
 - `metadata.changes`: bei Updates Feld-Diff im Format:
   - `"field_name": {"old": <wert>, "new": <wert>}`
 - keine sensitiven Rohdaten in `metadata` (Tokens, Passwoerter, Secrets)
