@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter, Roboto } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 import Providers from "@/components/auth/Providers";
 import Footer from "@/components/layout/Footer";
@@ -57,6 +58,7 @@ export default function RootLayout({
               {children}
             </main>
           </div>
+          <Toaster position="top-right" richColors closeButton />
           <Footer />
         </Providers>
       </body>
