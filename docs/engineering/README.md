@@ -40,3 +40,19 @@ Für Regeln mit Audit-Bezug ist `apps/common` die verbindliche Referenz. Nutze d
 - `../backend/common/README.md`
 - `../backend/common/audit-basics.md`
 - `../backend/common/audit-interfaces.md`
+
+## Empfohlene Lesereihenfolge
+
+Für neue Features oder größere Änderungen:
+
+1. `backend.md` bzw. `frontend.md`
+2. `api.md`
+3. `testing.md`
+4. `security.md`
+5. `ci.md`
+
+Bei Notification-bezogenen Änderungen zusätzlich:
+
+- `notifications.md`
+- `../backend/notification/README.md`
+- `../backend/notification/operations-runbook.md`

@@ -1,159 +1,68 @@
 # Backend (Django & DRF)
 
-Dieses Verzeichnis enthält das Backend des Projekts, basierend auf:
+Dieses Verzeichnis enthaelt das Backend des Projekts mit:
 
-- Django
-- Django REST Framework (DRF)
+- Django + Django REST Framework
 - PostgreSQL
-- Redis / Celery (für asynchrone Tasks)
+- Redis + Celery + Channels
 
-Die Architektur folgt den Regeln aus `CLAUDE.md` und `docs/engineering/backend.md`.
+Die Architektur folgt `CLAUDE.md` und den Regeln unter `docs/engineering/`.
 
----
+## Betrieb (kanonisch)
 
-## Grundprinzip
-
-Das Backend wird **primär über Docker Compose betrieben**.  
-Direkte lokale Python-Ausführung ist möglich, aber **nicht der Standard**.
-
----
-
-## Schnellstart (empfohlen)
-
-### 1. Gesamten Stack starten
+Das Backend wird primaer ueber Docker Compose betrieben.
 
 Im Repository-Root:
 
 ```bash
-docker compose up --build
-
-Oder (wenn Makefile vorhanden):
-
-make up
-2. Migrationen ausführen
-docker compose exec backend python manage.py migrate
-
-oder:
-
+make up-d
 make migrate
-3. Superuser erstellen (optional)
-docker compose exec backend python manage.py createsuperuser
-4. Backend erreichen
-API: http://localhost:8000
-Admin: http://localhost:8000/admin
-Lokale Entwicklung ohne Docker (optional)
+```
 
-Nur verwenden, wenn bewusst ohne Container gearbeitet wird:
+Optional:
 
-cd backend
+```bash
+make create-superuser
+```
 
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+Erreichbarkeit:
 
-pip install -r requirements.txt
+- API: `http://localhost:8000`
+- Admin: `http://localhost:8000/admin`
 
-python manage.py migrate
-python manage.py runserver
+## Wichtige Befehle
 
-⚠️ Dieser Workflow ist nicht kanonisch und kann von der Container-Umgebung abweichen.
+- `make be-shell` - Shell im Backend-Container
+- `make test-be` - Backend-Tests
+- `make schema-validate` - OpenAPI validieren (`--fail-on-warn`)
+- `make worker` / `make beat` - Celery Worker/Beat starten
 
-Projektstruktur (verbindlich)
+Notification-spezifisch:
 
-Jede Django-App folgt der domänenorientierten Struktur:
+- `make notification-health`
+- `make notification-dispatch`
+- `make notification-digest-build`
+- `make notification-digest-dispatch`
+- `make notification-pipeline-recover`
+- `make notification-seed-fixture TENANT_SLUG=<slug> USER_EMAIL=<mail>`
 
-app_name/
-├── admin/
-├── models/
-├── api/
-│   └── v1/
-│       ├── services/
-│       ├── views/
-│       ├── serializers/
-│       ├── permissions/
-│       └── schema/
-Wichtige Regeln
-Keine generischen Dateinamen (models.py, views.py, etc.)
-Keine Logik in __init__.py
-Business-Logik gehört in Services
-Views bleiben dünn
+## Architekturregeln (Kurzfassung)
 
-Details: docs/engineering/backend.md
+- Business-Logik in `api/v1/services/`
+- Views duenn halten
+- Keine Fachlogik in `__init__.py`
+- OpenAPI-Schema ist Vertragsbestandteil
+- Mutierende/security-kritische Flows mit Audit-Events absichern
 
-API & OpenAPI
-API-Dokumentation wird mit drf-spectacular erzeugt
-OpenAPI-Schema ist Teil des Vertrags
+Details:
 
-Schema generieren:
+- `docs/engineering/backend.md`
+- `docs/engineering/api.md`
+- `docs/engineering/testing.md`
+- `docs/engineering/security.md`
+- `docs/backend/common/README.md`
 
-docker compose exec backend python manage.py spectacular --file schema.yaml
+## Notification-Dokumentation
 
-Validieren:
-
-docker compose exec backend python manage.py spectacular --validate --fail-on-warn
-
-Details: docs/engineering/api.md
-
-Tests
-
-Backend-Tests ausführen:
-
-docker compose exec backend pytest
-
-oder:
-
-make test-be
-Test-Grundsätze
-Business-Logik muss getestet werden
-API-Verträge müssen getestet werden
-Security-relevante Pfade müssen getestet werden
-
-Details: docs/engineering/testing.md
-
-Linting & Qualität
-make lint
-
-oder manuell:
-
-ruff check .
-Hintergrundjobs (Celery)
-
-Wenn aktiviert:
-
-docker compose up worker
-
-oder:
-
-make worker
-Umgebungsvariablen
-
-Konfiguration erfolgt über .env.
-
-Beispiel:
-
-DEBUG=1
-DATABASE_URL=postgres://user:password@db:5432/app
-REDIS_URL=redis://redis:6379/0
-Wichtige Engineering-Regeln
-Keine Business-Logik in Views oder Serializern
-Keine direkten LLM-Aufrufe außerhalb von Services
-API-Schema immer aktuell halten
-Änderungen müssen durch Tests abgesichert sein
-Security-by-default anwenden
-Relevante Dokumentation
-Architektur & Backend: docs/engineering/backend.md
-API & OpenAPI: docs/engineering/api.md
-Tests: docs/engineering/testing.md
-Security: docs/engineering/security.md
-Docker: docs/engineering/docker.md
-CI: docs/engineering/ci.md
-Ziel
-
-Dieses Backend ist ausgelegt für:
-
-Skalierbarkeit
-Wartbarkeit
-Sicherheit
-Auditierbarkeit
-Produktionsnähe
-
-Der Code soll den Standards eines erfahrenen Enterprise-Engineering-Teams entsprechen.
+- `docs/backend/notification/README.md`
+- `docs/backend/notification/operations-runbook.md`

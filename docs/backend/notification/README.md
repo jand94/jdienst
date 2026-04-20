@@ -13,6 +13,30 @@ Zentrales Benachrichtigungsmodul fuer Inbox, Mail, Realtime und Digest mit Audit
 - `management/commands/`: Diagnose- und Seed-Kommandos
 - `tests/`: Unit-/Integrations- und Contract-Tests
 
+## API-Ueberblick (v1)
+
+Inbox:
+
+- `GET /api/notification/v1/notifications/` (paginiert)
+- `GET /api/notification/v1/notifications/unread-count/`
+- `POST /api/notification/v1/notifications/{id}/mark-read/`
+- `POST /api/notification/v1/notifications/bulk-mark-read/`
+- `POST /api/notification/v1/notifications/{id}/archive/`
+- `POST /api/notification/v1/notifications/bulk-archive/`
+
+Praeferenzen:
+
+- `GET /api/notification/v1/preferences/` (paginiert)
+- `PATCH /api/notification/v1/preferences/{id}/`
+
+Ops:
+
+- `GET /api/notification/v1/ops/health-snapshot/`
+
+Realtime:
+
+- `ws://<host>/ws/notification/v1/inbox/?token=<jwt>`
+
 ## Lokale Diagnose
 
 - `make notification-health` fuer Pipeline-Snapshot
@@ -24,3 +48,8 @@ Zentrales Benachrichtigungsmodul fuer Inbox, Mail, Realtime und Digest mit Audit
 ## Runbook
 
 - Operational Playbook: `docs/backend/notification/operations-runbook.md`
+
+## Querverweise
+
+- Engineering-Regelwerk: `docs/engineering/notifications.md`
+- API-Vertrag/OpenAPI: `docs/engineering/api.md`
