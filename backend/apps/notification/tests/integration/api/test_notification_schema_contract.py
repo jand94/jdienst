@@ -14,6 +14,7 @@ def test_notification_schema_tags_paths_and_error_contract():
     notification_bulk_archive_path = "/api/notification/v1/notifications/bulk-archive/"
     unread_count_path = "/api/notification/v1/notifications/unread-count/"
     preference_path = "/api/notification/v1/preferences/"
+    preference_types_path = "/api/notification/v1/preferences/types/"
     ops_health_snapshot_path = "/api/notification/v1/ops/health-snapshot/"
 
     assert notification_list_path in paths
@@ -23,6 +24,7 @@ def test_notification_schema_tags_paths_and_error_contract():
     assert notification_bulk_archive_path in paths
     assert unread_count_path in paths
     assert preference_path in paths
+    assert preference_types_path in paths
     assert ops_health_snapshot_path in paths
 
     assert paths[notification_list_path]["get"]["tags"] == ["Notification - Inbox"]
@@ -32,6 +34,7 @@ def test_notification_schema_tags_paths_and_error_contract():
     assert paths[notification_bulk_archive_path]["post"]["tags"] == ["Notification - Inbox - State"]
     assert paths[unread_count_path]["get"]["tags"] == ["Notification - Inbox"]
     assert paths[preference_path]["get"]["tags"] == ["Notification - Preferences"]
+    assert paths[preference_types_path]["get"]["tags"] == ["Notification - Preferences"]
     assert paths[ops_health_snapshot_path]["get"]["tags"] == ["Notification - Operations - Health"]
 
     create_responses = paths[notification_list_path]["post"]["responses"]

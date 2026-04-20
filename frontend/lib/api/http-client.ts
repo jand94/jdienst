@@ -95,10 +95,22 @@ async function requestInternal<T>(
 
   const payload = await parseBody(response);
   if (!response.ok) {
-    const message =
-      typeof payload === "object" && payload !== null && "detail" in payload
-        ? String((payload as { detail: unknown }).detail)
-        : `Request failed with status ${response.status}`;
+    let message = `Request failed with status ${response.status}`;
+    if (typeof payload === "object" && payload !== null) {
+      if ("detail" in payload) {
+        message = String((payload as { detail: unknown }).detail);
+      } else if ("error" in payload) {
+        const errorPayload = (payload as { error?: unknown }).error;
+        if (
+          typeof errorPayload === "object" &&
+          errorPayload !== null &&
+          "message" in errorPayload &&
+          typeof (errorPayload as { message?: unknown }).message === "string"
+        ) {
+          message = (errorPayload as { message: string }).message;
+        }
+      }
+    }
     throw new ApiError(message, response.status, payload);
   }
   return payload as T;

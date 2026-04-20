@@ -9,7 +9,7 @@ Schnelle Diagnose und Stabilisierung der Notification-Pipeline bei Queue-Lag, De
 1. Snapshot abrufen:
 
 ```bash
-make notification-health
+make notification-healt vew
 ```
 
 2. Wenn `delivery.pending_total` oder `delivery.retries_due_total` hoch sind:

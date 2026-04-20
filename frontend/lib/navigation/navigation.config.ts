@@ -1,6 +1,6 @@
 import type { AppPermission } from "@/lib/auth/session-types";
 import type { LucideIcon } from "lucide-react";
-import { BarChart3, Bell, LayoutDashboard, Settings, ShieldCheck, Users, Wrench } from "lucide-react";
+import { BarChart3, Bell, ClipboardList, LayoutDashboard, Settings, ShieldCheck, Users, Wrench } from "lucide-react";
 
 /**
  * Navigation-Konfiguration (Single Source of Truth)
@@ -31,7 +31,8 @@ export type NavigationIconKey =
   | "users"
   | "crm"
   | "notifications"
-  | "notificationPreferences";
+  | "notificationPreferences"
+  | "feTestTasks";
 
 export type NavigationGroupColorClasses = {
   icon: string;
@@ -70,6 +71,7 @@ export const navigationIconRegistry: Record<NavigationIconKey, LucideIcon> = {
   crm: BarChart3,
   notifications: Bell,
   notificationPreferences: Bell,
+  feTestTasks: ClipboardList,
 };
 
 export const navigationGroupColors: Record<NavigationGroupKey, NavigationGroupColorClasses> = {
@@ -125,6 +127,14 @@ export const navigationItems: NavigationItem[] = [
         group: "core",
       },
     ],
+  },
+  {
+    href: "/fetests/tasks",
+    label: "FE Test Tasks",
+    description: "Task-Flows fuer Frontend + Notification-Test",
+    icon: "feTestTasks",
+    group: "core",
+    requiresAuth: true,
   },
   {
     href: "/audit",

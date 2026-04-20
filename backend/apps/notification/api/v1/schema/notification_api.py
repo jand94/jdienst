@@ -12,6 +12,7 @@ from apps.notification.api.v1.serializers import (
     NotificationPreferenceReadSerializer,
     NotificationPreferenceUpdateSerializer,
     NotificationReadSerializer,
+    NotificationTypeSerializer,
 )
 
 
@@ -211,6 +212,24 @@ notification_preference_viewset_schema = extend_schema_view(
             429: OpenApiResponse(response=ApiErrorResponseSerializer),
         },
     ),
+)
+
+
+notification_preference_types_schema = extend_schema(
+    operation_id="notification_v1_preferences_types_list",
+    tags=["Notification - Preferences"],
+    summary="List known active notification types",
+    responses={
+        200: OpenApiResponse(response=NotificationTypeSerializer(many=True)),
+        401: OpenApiResponse(response=ApiErrorResponseSerializer),
+        403: OpenApiResponse(response=ApiErrorResponseSerializer),
+    },
+    parameters=[
+        tenant_slug_header_parameter(
+            required=True,
+            description="Tenant scope required for access control.",
+        ),
+    ],
 )
 
 

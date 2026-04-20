@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import {
   listNotificationPreferences,
+  listNotificationTypes,
   listNotifications,
   updateNotificationPreference,
 } from "@/lib/notifications/notification-api";
@@ -43,12 +44,16 @@ export default function NotificationPreferencesPage() {
     setLoading(true);
     setError(null);
     try {
-      const [loadedPreferences, loadedNotifications] = await Promise.all([
+      const [loadedPreferences, loadedNotifications, loadedTypes] = await Promise.all([
           listNotificationPreferences(auth.tenantSlug, 1, 200),
           listNotifications(auth.tenantSlug, true, 1, 200),
+          listNotificationTypes(auth.tenantSlug),
       ]);
       setPreferences(loadedPreferences.results);
       const typeMap = new Map<string, NotificationTypeSummary>();
+      for (const type of loadedTypes) {
+        typeMap.set(type.key, type);
+      }
       for (const preference of loadedPreferences.results) {
         typeMap.set(preference.notification_type.key, preference.notification_type);
       }

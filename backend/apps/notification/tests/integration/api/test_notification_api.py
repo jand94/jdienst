@@ -190,6 +190,26 @@ def test_user_can_subscribe_or_unsubscribe_preference(api_client, user, tenant, 
 
 
 @pytest.mark.django_db
+def test_user_can_list_notification_types_for_preferences(api_client, user, tenant, tenant_membership):
+    NotificationType.objects.create(
+        key="task-assigned",
+        title="Task Assigned",
+        default_channels=[UserNotificationPreference.CHANNEL_IN_APP],
+        is_active=True,
+    )
+    api_client.force_authenticate(user=user)
+
+    response = api_client.get(
+        "/api/notification/v1/preferences/types/",
+        HTTP_X_TENANT_SLUG=tenant.slug,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert isinstance(response.data, list)
+    assert any(item["key"] == "task-assigned" for item in response.data)
+
+
+@pytest.mark.django_db
 def test_staff_can_read_notification_health_snapshot(api_client, staff_user, tenant, staff_tenant_membership):
     api_client.force_authenticate(user=staff_user)
 

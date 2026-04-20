@@ -21,6 +21,7 @@ from apps.notification.api.v1.schema import (
     notification_bulk_mark_read_schema,
     notification_mark_read_schema,
     notification_ops_snapshot_schema,
+    notification_preference_types_schema,
     notification_unread_count_schema,
     notification_preference_viewset_schema,
     notification_viewset_schema,
@@ -32,6 +33,7 @@ from apps.notification.api.v1.serializers import (
     NotificationPreferenceReadSerializer,
     NotificationPreferenceUpdateSerializer,
     NotificationReadSerializer,
+    NotificationTypeSerializer,
     NotificationUnreadCountSerializer,
 )
 from apps.notification.api.v1.services import (
@@ -242,6 +244,15 @@ class NotificationPreferenceViewSet(mixins.ListModelMixin, mixins.CreateModelMix
             NotificationPreferenceReadSerializer(preference).data,
             status=status.HTTP_201_CREATED,
         )
+
+    @notification_preference_types_schema
+    @action(detail=False, methods=["get"], url_path="types")
+    def types(self, request):
+        tenant = require_tenant(request)
+        ensure_user_in_tenant(user=request.user, tenant=tenant)
+        queryset = NotificationType.objects.filter(is_active=True).order_by("title", "key")
+        payload = NotificationTypeSerializer(queryset, many=True).data
+        return Response(payload, status=status.HTTP_200_OK)
 
 
 class NotificationOpsViewSet(GenericViewSet):

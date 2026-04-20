@@ -4,6 +4,7 @@ import type {
   NotificationPage,
   NotificationPreference,
   NotificationPreferencePage,
+  NotificationTypeSummary,
 } from "@/lib/notifications/notification-types";
 
 export async function listNotifications(
@@ -82,6 +83,13 @@ export async function listNotificationPreferences(
     page_size: String(pageSize),
   }).toString();
   return httpClient.get<NotificationPreferencePage>(`/api/notification/v1/preferences/?${query}`, {
+    auth: true,
+    tenantSlug,
+  });
+}
+
+export async function listNotificationTypes(tenantSlug: string): Promise<NotificationTypeSummary[]> {
+  return httpClient.get<NotificationTypeSummary[]>("/api/notification/v1/preferences/types/", {
     auth: true,
     tenantSlug,
   });

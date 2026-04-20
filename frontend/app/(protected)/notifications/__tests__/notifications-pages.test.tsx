@@ -8,6 +8,7 @@ const {
   bulkMarkNotificationsAsReadMock,
   markNotificationAsReadMock,
   listNotificationPreferencesMock,
+  listNotificationTypesMock,
   updateNotificationPreferenceMock,
   getUnreadNotificationCountMock,
   archiveNotificationMock,
@@ -17,6 +18,7 @@ const {
   bulkMarkNotificationsAsReadMock: vi.fn(),
   markNotificationAsReadMock: vi.fn(),
   listNotificationPreferencesMock: vi.fn(),
+  listNotificationTypesMock: vi.fn(),
   updateNotificationPreferenceMock: vi.fn(),
   getUnreadNotificationCountMock: vi.fn(),
   archiveNotificationMock: vi.fn(),
@@ -41,6 +43,7 @@ vi.mock("@/lib/notifications/notification-api", () => ({
   bulkMarkNotificationsAsRead: bulkMarkNotificationsAsReadMock,
   markNotificationAsRead: markNotificationAsReadMock,
   listNotificationPreferences: listNotificationPreferencesMock,
+  listNotificationTypes: listNotificationTypesMock,
   updateNotificationPreference: updateNotificationPreferenceMock,
   getUnreadNotificationCount: getUnreadNotificationCountMock,
   archiveNotification: archiveNotificationMock,
@@ -112,6 +115,17 @@ describe("Notification pages", () => {
       previous: null,
       results: [],
     });
+    listNotificationTypesMock.mockResolvedValueOnce([
+      {
+        id: "nt-2",
+        key: "digest",
+        title: "Digest Meldung",
+        description: "Beschreibung",
+        default_channels: ["in_app"],
+        allow_user_opt_out: true,
+        is_active: true,
+      },
+    ]);
     listNotificationsMock.mockResolvedValueOnce({
       count: 1,
       next: null,
