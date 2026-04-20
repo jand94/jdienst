@@ -1,69 +1,29 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-
-const replaceMock = vi.fn();
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: replaceMock }),
-  usePathname: () => "/audit",
-}));
 
 vi.mock("@/hooks/use-auth", () => ({
   useAuth: vi.fn(),
 }));
 
-import RequireAuth from "@/components/auth/RequireAuth";
+import RequireAccess from "@/components/auth/RequireAccess";
 import { useAuth } from "@/hooks/use-auth";
 
-describe("RequireAuth", () => {
-  it("redirects unauthenticated users to login", async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      status: "unauthenticated",
-      user: null,
-      roles: [],
-      permissions: [],
-      featureFlags: [],
-      tenantSlug: "tenant-a",
-      errorMessage: null,
-      signIn: vi.fn(),
-      signOut: vi.fn(),
-      setTenant: vi.fn(),
-      hasRole: vi.fn(),
-      can: vi.fn(),
-      canAny: vi.fn(),
-      hasFeature: vi.fn(),
-      navigationFavorites: [],
-      toggleNavigationFavorite: vi.fn(),
-      reorderNavigationFavorites: vi.fn(),
-      refreshSession: vi.fn(),
-    });
-
-    render(
-      <RequireAuth>
-        <p>secret</p>
-      </RequireAuth>,
-    );
-
-    await waitFor(() => {
-      expect(replaceMock).toHaveBeenCalledWith("/login?next=%2Faudit");
-    });
-  });
-
-  it("renders content for authenticated users", () => {
+describe("RequireAccess", () => {
+  it("renders fallback when permission is missing", () => {
     vi.mocked(useAuth).mockReturnValue({
       status: "authenticated",
       user: null,
       roles: [],
-      permissions: [],
-      featureFlags: [],
+      permissions: ["dashboard.view"],
+      featureFlags: ["dynamic_authz_navigation"],
       tenantSlug: "tenant-a",
       errorMessage: null,
       signIn: vi.fn(),
       signOut: vi.fn(),
       setTenant: vi.fn(),
       hasRole: vi.fn(),
-      can: vi.fn(),
-      canAny: vi.fn(),
+      can: vi.fn((permission: string) => permission === "dashboard.view"),
+      canAny: vi.fn(() => false),
       hasFeature: vi.fn(),
       navigationFavorites: [],
       toggleNavigationFavorite: vi.fn(),
@@ -72,9 +32,41 @@ describe("RequireAuth", () => {
     });
 
     render(
-      <RequireAuth>
+      <RequireAccess permissions={["audit.ops.manage"]}>
         <p>sichtbar</p>
-      </RequireAuth>,
+      </RequireAccess>,
+    );
+
+    expect(screen.queryByText("sichtbar")).not.toBeInTheDocument();
+    expect(screen.getByText("Keine Berechtigung fuer diesen Bereich.")).toBeInTheDocument();
+  });
+
+  it("renders children when at least one permission matches", () => {
+    vi.mocked(useAuth).mockReturnValue({
+      status: "authenticated",
+      user: null,
+      roles: [],
+      permissions: ["audit.events.read"],
+      featureFlags: ["dynamic_authz_navigation"],
+      tenantSlug: "tenant-a",
+      errorMessage: null,
+      signIn: vi.fn(),
+      signOut: vi.fn(),
+      setTenant: vi.fn(),
+      hasRole: vi.fn(),
+      can: vi.fn((permission: string) => permission === "audit.events.read"),
+      canAny: vi.fn((...permissions: string[]) => permissions.includes("audit.events.read")),
+      hasFeature: vi.fn(),
+      navigationFavorites: [],
+      toggleNavigationFavorite: vi.fn(),
+      reorderNavigationFavorites: vi.fn(),
+      refreshSession: vi.fn(),
+    });
+
+    render(
+      <RequireAccess permissions={["audit.events.read", "audit.ops.manage"]}>
+        <p>sichtbar</p>
+      </RequireAccess>,
     );
 
     expect(screen.getByText("sichtbar")).toBeInTheDocument();

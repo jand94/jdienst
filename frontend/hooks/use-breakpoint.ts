@@ -20,13 +20,6 @@ type CurrentBreakpointOptions = {
   defaultWidth?: number;
 };
 
-function getWindowWidth(defaultWidth: number): number {
-  if (typeof window === "undefined") {
-    return defaultWidth;
-  }
-  return window.innerWidth;
-}
-
 function getBreakpointQuery(breakpoint: Breakpoint, direction: BreakpointDirection): string {
   if (direction === "up") {
     return mq.up(breakpoint);
@@ -51,7 +44,7 @@ export function useIsMobile(options: BreakpointOptions = {}): boolean {
 
 export function useCurrentBreakpoint(options: CurrentBreakpointOptions = {}): Breakpoint {
   const { defaultWidth = BREAKPOINTS.md } = options;
-  const [width, setWidth] = useState(() => getWindowWidth(defaultWidth));
+  const [width, setWidth] = useState(defaultWidth);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -88,7 +81,7 @@ export function useResponsiveValue<T>(
   options: CurrentBreakpointOptions = {},
 ): T {
   const { defaultWidth = BREAKPOINTS.md } = options;
-  const [width, setWidth] = useState(() => getWindowWidth(defaultWidth));
+  const [width, setWidth] = useState(defaultWidth);
 
   useEffect(() => {
     if (typeof window === "undefined") {

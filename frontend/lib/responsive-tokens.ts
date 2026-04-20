@@ -1,6 +1,6 @@
 export const responsiveTokens = {
-  container: "mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-10",
-  shellContainer: "mx-auto flex w-full max-w-7xl flex-1",
+  container: "w-full px-4 sm:px-6 lg:px-10",
+  shellContainer: "flex w-full flex-1",
   pageContentPadding: "flex-1 px-4 py-6 sm:px-6 lg:px-10",
   mobilePanelPadding: "px-3 py-4",
   mobilePanelHeaderPadding: "border-b px-4 py-3",

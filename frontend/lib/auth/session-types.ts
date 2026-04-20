@@ -1,4 +1,17 @@
 export type AppRole = "staff" | "audit_reader" | "audit_operator";
+export type AppPermission =
+  | "dashboard.view"
+  | "reports.view"
+  | "settings.view"
+  | "accounts.self.read"
+  | "accounts.self.update"
+  | "accounts.tenants.read"
+  | "tenant.members.manage"
+  | "tenant.settings.manage"
+  | "audit.events.read"
+  | "audit.ops.manage";
+
+export type FeatureFlag = "dynamic_authz_navigation" | "audit_ops_enabled";
 
 export type SessionUser = {
   id: number | string;
@@ -10,6 +23,10 @@ export type SessionUser = {
   is_staff: boolean;
   date_joined: string;
   roles?: string[];
+  permissions?: string[];
+  feature_flags?: string[];
+  current_tenant_role?: string | null;
+  navigation_favorites?: string[];
 };
 
 export type UserTenantMembership = {
@@ -31,6 +48,8 @@ export type SessionSnapshot = {
   status: SessionStatus;
   user: SessionUser | null;
   roles: AppRole[];
+  permissions: string[];
+  featureFlags: string[];
   tenantSlug: string;
   errorMessage: string | null;
 };

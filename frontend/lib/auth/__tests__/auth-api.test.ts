@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { postMock, getMock, setAccessTokenMock } = vi.hoisted(() => ({
+const { postMock, getMock, putMock, setAccessTokenMock } = vi.hoisted(() => ({
   postMock: vi.fn(),
   getMock: vi.fn(),
+  putMock: vi.fn(),
   setAccessTokenMock: vi.fn(),
 }));
 
@@ -10,6 +11,7 @@ vi.mock("@/lib/api/http-client", () => ({
   httpClient: {
     post: postMock,
     get: getMock,
+    put: putMock,
   },
 }));
 
@@ -17,12 +19,13 @@ vi.mock("@/lib/auth/token-store", () => ({
   setAccessToken: setAccessTokenMock,
 }));
 
-import { getMe, getMyTenants, login, logout, refresh } from "@/lib/auth/auth-api";
+import { getMe, getMyTenants, getNavigationFavorites, login, logout, refresh, setNavigationFavorites } from "@/lib/auth/auth-api";
 
 describe("auth-api", () => {
   beforeEach(() => {
     postMock.mockReset();
     getMock.mockReset();
+    putMock.mockReset();
     setAccessTokenMock.mockReset();
   });
 
@@ -87,5 +90,30 @@ describe("auth-api", () => {
       auth: true,
       retryOnAuthFailure: false,
     });
+  });
+
+  it("loads navigation favorites for authenticated user", async () => {
+    getMock.mockResolvedValue({ favorites: ["/settings"] });
+
+    const result = await getNavigationFavorites();
+
+    expect(result).toEqual(["/settings"]);
+    expect(getMock).toHaveBeenCalledWith("/api/accounts/v1/users/me/navigation-favorites/", {
+      auth: true,
+      retryOnAuthFailure: false,
+    });
+  });
+
+  it("updates navigation favorites for authenticated user", async () => {
+    putMock.mockResolvedValue({ favorites: ["/audit", "/settings"] });
+
+    const result = await setNavigationFavorites(["/audit", "/settings"]);
+
+    expect(result).toEqual(["/audit", "/settings"]);
+    expect(putMock).toHaveBeenCalledWith(
+      "/api/accounts/v1/users/me/navigation-favorites/",
+      { favorites: ["/audit", "/settings"] },
+      { auth: true, retryOnAuthFailure: false },
+    );
   });
 });

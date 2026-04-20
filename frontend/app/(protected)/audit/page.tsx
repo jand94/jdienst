@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import AuditEventDetail from "@/components/audit/AuditEventDetail";
 import AuditEventFilters from "@/components/audit/AuditEventFilters";
 import AuditEventTable from "@/components/audit/AuditEventTable";
-import RequireRole from "@/components/auth/RequireRole";
+import RequireAccess from "@/components/auth/RequireAccess";
 import { getAuditEvent, listAuditEvents } from "@/lib/audit/audit-api";
 import type { AuditEvent, AuditEventQuery } from "@/lib/audit/audit-types";
 import { useAuth } from "@/hooks/use-auth";
@@ -29,7 +29,7 @@ export default function AuditPage() {
   const pageSize = query.pageSize ?? 50;
 
   const canLoad = useMemo(
-    () => auth.status === "authenticated" && auth.hasRole("audit_reader", "audit_operator"),
+    () => auth.status === "authenticated" && auth.canAny("audit.events.read", "audit.ops.manage"),
     [auth],
   );
 
@@ -75,7 +75,7 @@ export default function AuditPage() {
   };
 
   return (
-    <RequireRole roles={["audit_reader", "audit_operator"]}>
+    <RequireAccess permissions={["audit.events.read", "audit.ops.manage"]}>
       <section className="space-y-5">
         <header className="space-y-1">
           <h1 className="text-3xl font-semibold tracking-tight">Audit Events</h1>
@@ -98,6 +98,6 @@ export default function AuditPage() {
           <AuditEventDetail event={selectedEvent} />
         </div>
       </section>
-    </RequireRole>
+    </RequireAccess>
   );
 }

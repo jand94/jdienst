@@ -9,12 +9,14 @@ from rest_framework.viewsets import GenericViewSet
 from apps.accounts.api.v1.permissions import IsSelfOrStaff, IsStaffUser
 from apps.accounts.api.v1.schema import account_user_viewset_schema
 from apps.accounts.api.v1.serializers import (
+    AccountNavigationFavoritesSerializer,
     AccountUserReadSerializer,
     AccountUserTenantMembershipSerializer,
     AccountUserUpdateSerializer,
 )
-from apps.accounts.api.v1.services import deactivate_user, update_user_profile
+from apps.accounts.api.v1.services import deactivate_user, update_navigation_favorites, update_user_profile
 from apps.accounts.api.v1.services import log_user_list_access, log_user_read_access
+from apps.accounts.api.v1.services import resolve_user_access_context
 from apps.common.api.v1.services import (
     ensure_user_in_tenant,
     execute_idempotent_operation,
@@ -42,6 +44,17 @@ class AccountUserViewSet(
     queryset = User.objects.order_by("-date_joined", "-id")
     serializer_class = AccountUserReadSerializer
     pagination_class = AccountUserPagination
+
+    def _serialize_user_with_access_context(self, *, user: User, tenant, request) -> dict:
+        access_context = resolve_user_access_context(user=user, tenant=tenant)
+        return AccountUserReadSerializer(
+            user,
+            context={
+                "request": request,
+                "tenant": tenant,
+                "access_context": access_context,
+            },
+        ).data
 
     def _execute_idempotent_update(
         self,
@@ -90,6 +103,8 @@ class AccountUserViewSet(
         return [IsAuthenticated()]
 
     def get_serializer_class(self):
+        if self.action == "navigation_favorites":
+            return AccountNavigationFavoritesSerializer
         if self.action == "me":
             if getattr(self.request, "method", "").upper() == "PATCH":
                 return AccountUserUpdateSerializer
@@ -173,7 +188,7 @@ class AccountUserViewSet(
         ensure_user_in_tenant(user=request.user, tenant=tenant)
         request_id, trace_id = extract_audit_correlation_ids(request)
         if request.method == "GET":
-            serializer = AccountUserReadSerializer(request.user)
+            payload = self._serialize_user_with_access_context(user=request.user, tenant=tenant, request=request)
             log_user_read_access(
                 actor=request.user,
                 target=request.user,
@@ -182,7 +197,7 @@ class AccountUserViewSet(
                 request_id=request_id,
                 trace_id=trace_id,
             )
-            return Response(serializer.data)
+            return Response(payload)
 
         serializer = AccountUserUpdateSerializer(
             data=request.data,
@@ -195,15 +210,17 @@ class AccountUserViewSet(
             scope="accounts.user.me.patch",
             body=serializer.validated_data,
             execute=lambda: (
-                AccountUserReadSerializer(
-                    update_user_profile(
+                self._serialize_user_with_access_context(
+                    user=update_user_profile(
                         actor=request.user,
                         data=serializer.validated_data,
                         source="api",
                         request_id=request_id,
                         trace_id=trace_id,
-                    )
-                ).data,
+                    ),
+                    tenant=tenant,
+                    request=request,
+                ),
                 status.HTTP_200_OK,
             ),
         )
@@ -222,6 +239,39 @@ class AccountUserViewSet(
         ).order_by("tenant__slug")
         serializer = AccountUserTenantMembershipSerializer(memberships, many=True)
         return Response(serializer.data)
+
+    @extend_schema(
+        methods=["GET"],
+        operation_id="accounts_v1_users_me_navigation_favorites_retrieve",
+        tags=["Accounts - User - Self Service"],
+        summary="Retrieve navigation favorites for authenticated user",
+        responses=AccountNavigationFavoritesSerializer,
+    )
+    @extend_schema(
+        methods=["PUT"],
+        operation_id="accounts_v1_users_me_navigation_favorites_update",
+        tags=["Accounts - User - Self Service"],
+        summary="Replace navigation favorites for authenticated user",
+        request=AccountNavigationFavoritesSerializer,
+        responses=AccountNavigationFavoritesSerializer,
+    )
+    @action(detail=False, methods=["get", "put"], url_path="me/navigation-favorites")
+    def navigation_favorites(self, request):
+        if request.method == "GET":
+            payload = {"favorites": list(request.user.navigation_favorites)}
+            return Response(payload)
+
+        serializer = AccountNavigationFavoritesSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        request_id, trace_id = extract_audit_correlation_ids(request)
+        updated_user = update_navigation_favorites(
+            actor=request.user,
+            favorites=serializer.validated_data["favorites"],
+            source="api",
+            request_id=request_id,
+            trace_id=trace_id,
+        )
+        return Response({"favorites": list(updated_user.navigation_favorites)})
 
     @extend_schema(
         operation_id="accounts_v1_users_me_deactivate_create",
@@ -256,14 +306,16 @@ class AccountUserViewSet(
             scope="accounts.user.me.deactivate",
             body={},
             execute=lambda: (
-                AccountUserReadSerializer(
-                    deactivate_user(
+                self._serialize_user_with_access_context(
+                    user=deactivate_user(
                         actor=request.user,
                         source="api",
                         request_id=request_id,
                         trace_id=trace_id,
-                    )
-                ).data,
+                    ),
+                    tenant=tenant,
+                    request=request,
+                ),
                 status.HTTP_200_OK,
             ),
         )

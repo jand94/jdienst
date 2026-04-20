@@ -1,6 +1,6 @@
 import pytest
 
-from apps.accounts.api.v1.services.account_user_service import deactivate_user, update_user_profile
+from apps.accounts.api.v1.services.account_user_service import deactivate_user, update_navigation_favorites, update_user_profile
 from apps.common.models import AuditEvent, OutboxEvent
 from apps.common.tests.factories import UserFactory
 
@@ -68,3 +68,27 @@ def test_update_user_profile_writes_correlation_identifiers():
     assert event is not None
     assert event.metadata["request_id"] == "req-99"
     assert event.metadata["trace_id"] == "trace-99"
+
+
+@pytest.mark.django_db
+def test_update_navigation_favorites_updates_user_and_writes_audit_event():
+    actor = UserFactory()
+
+    update_navigation_favorites(
+        actor=actor,
+        favorites=["/settings", "/audit"],
+        source="api",
+        request_id="req-fav",
+        trace_id="trace-fav",
+    )
+
+    actor.refresh_from_db()
+    assert actor.navigation_favorites == ["/settings", "/audit"]
+    event = AuditEvent.objects.filter(
+        action="accounts.user.navigation_favorites.updated",
+        target_model="accounts.User",
+        target_id=str(actor.pk),
+    ).first()
+    assert event is not None
+    assert event.metadata["source"] == "api"
+    assert event.metadata["count"] == 2

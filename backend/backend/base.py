@@ -6,6 +6,8 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+from corsheaders.defaults import default_headers
+
 
 def _env_bool(name: str, default: bool = False) -> bool:
     value = os.getenv(name)
@@ -175,6 +177,7 @@ CORS_ALLOWED_ORIGINS = _env_list(
     default="http://localhost:3000,http://127.0.0.1:3000",
 )
 CORS_ALLOW_CREDENTIALS = _env_bool("CORS_ALLOW_CREDENTIALS", default=True)
+CORS_ALLOW_HEADERS = [*default_headers, "x-tenant-slug"]
 
 AUTH_API_ENABLE_SESSION_AUTH = _env_bool("AUTH_API_ENABLE_SESSION_AUTH", default=True)
 AUTH_JWT_ALGORITHM = os.getenv("AUTH_JWT_ALGORITHM", "HS256")

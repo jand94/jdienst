@@ -51,6 +51,7 @@ def _extract_request_security_context(request) -> tuple[str | None, str]:
 
 
 class AuthLoginView(GenericAPIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "auth_login"
@@ -78,6 +79,7 @@ class AuthLoginView(GenericAPIView):
 
 
 class AuthRefreshView(GenericAPIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "auth_refresh"

@@ -11,6 +11,10 @@ type LogoutResponse = {
   detail: string;
 };
 
+type NavigationFavoritesResponse = {
+  favorites: string[];
+};
+
 function mapTokens(response: TokenResponse): AuthTokens {
   return {
     access: response.access,
@@ -61,4 +65,21 @@ export async function getMyTenants(): Promise<UserTenantMembership[]> {
     auth: true,
     retryOnAuthFailure: false,
   });
+}
+
+export async function getNavigationFavorites(): Promise<string[]> {
+  const payload = await httpClient.get<NavigationFavoritesResponse>("/api/accounts/v1/users/me/navigation-favorites/", {
+    auth: true,
+    retryOnAuthFailure: false,
+  });
+  return payload.favorites;
+}
+
+export async function setNavigationFavorites(favorites: string[]): Promise<string[]> {
+  const payload = await httpClient.put<NavigationFavoritesResponse>(
+    "/api/accounts/v1/users/me/navigation-favorites/",
+    { favorites },
+    { auth: true, retryOnAuthFailure: false },
+  );
+  return payload.favorites;
 }

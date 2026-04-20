@@ -2,77 +2,184 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, Star } from "lucide-react";
+import { useState } from "react";
 
 import { useAuth } from "@/hooks/use-auth";
-import type { AppRole } from "@/lib/auth/session-types";
+import { flattenVisibleNavigationItems, getVisibleNavigationItems } from "@/lib/navigation/navigation-policy";
+import { getNavigationIcon } from "@/lib/navigation/icons";
+import { getNavigationGroupColors } from "@/lib/navigation/group-colors";
 import { cn } from "@/lib/utils";
-
-type NavigationItem = {
-  href: string;
-  label: string;
-  description: string;
-  requiresAuth?: boolean;
-  requiredRoles?: AppRole[];
-};
-
-export const navigationItems: NavigationItem[] = [
-  { href: "/", label: "Dashboard", description: "Startseite und Uebersicht", requiresAuth: true },
-  { href: "/audit", label: "Audit Events", description: "Pruefung von Sicherheitsereignissen", requiresAuth: true, requiredRoles: ["audit_reader"] },
-  {
-    href: "/audit/ops",
-    label: "Audit Ops",
-    description: "Integritaet, SIEM und Retention",
-    requiresAuth: true,
-    requiredRoles: ["audit_operator"],
-  },
-  { href: "/reports", label: "Reports", description: "Auswertungen und Kennzahlen", requiresAuth: true },
-  { href: "/settings", label: "Einstellungen", description: "Konfiguration und Profile", requiresAuth: true },
-];
+import { Button } from "@/components/ui/button";
 
 function NavigationList({ compact = false }: { compact?: boolean }) {
   const pathname = usePathname();
   const auth = useAuth();
+  const isCollapsed = compact;
+  const favoriteSet = new Set(auth.navigationFavorites);
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({
+    "/settings": true,
+  });
 
   const isActiveLink = (href: string) =>
     href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 
-  const visibleItems = navigationItems.filter((item) => {
-    if (item.requiresAuth && auth.status !== "authenticated") {
-      return false;
-    }
-    if (item.requiredRoles && !auth.hasRole(...item.requiredRoles)) {
-      return false;
-    }
-    return true;
-  });
+  const visibleItems = getVisibleNavigationItems(auth);
+  const flatVisibleItems = flattenVisibleNavigationItems(visibleItems);
+  const itemByHref = new Map(flatVisibleItems.map((item) => [item.href, item] as const));
+  const favoriteItems = auth.navigationFavorites
+    .map((href) => itemByHref.get(href))
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+  const regularItems = visibleItems.filter((item) => !favoriteSet.has(item.href));
+  const displayedItems = isCollapsed ? visibleItems : regularItems;
+
+  const renderLinkBody = (
+    href: string,
+    label: string,
+    description: string,
+    iconKey: Parameters<typeof getNavigationIcon>[0],
+    group: Parameters<typeof getNavigationGroupColors>[0],
+    isChild = false,
+  ) => {
+    const isActive = isActiveLink(href);
+    const isFavorite = favoriteSet.has(href);
+    const NavIcon = getNavigationIcon(iconKey);
+    const colorClasses = getNavigationGroupColors(group);
+
+    return (
+      <div
+        className={cn(
+          "flex items-start gap-1 rounded-md border border-transparent px-1 py-1",
+          isFavorite && !isCollapsed && colorClasses.badgeBg,
+        )}
+      >
+        <Link
+          href={href}
+          aria-current={isActive ? "page" : undefined}
+          title={isCollapsed ? label : undefined}
+          className={cn(
+            "flex flex-1 items-center gap-2 border-l-2 border-l-transparent px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-l-border hover:bg-accent/40 hover:text-foreground",
+            isActive && cn("font-medium", colorClasses.activeBorder, colorClasses.activeText),
+            compact ? "pl-2" : "",
+            isChild && !isCollapsed && "pl-8",
+            isCollapsed && "justify-center px-1",
+          )}
+        >
+          <NavIcon className={cn("h-4 w-4 shrink-0", colorClasses.icon)} />
+          {!isCollapsed && (
+            <span>
+              <span className="font-medium">{label}</span>
+              <p className="text-xs text-muted-foreground">{description}</p>
+            </span>
+          )}
+        </Link>
+        {auth.status === "authenticated" && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className={cn("mt-1 h-8 w-8 shrink-0", isCollapsed && "hidden")}
+            aria-label={isFavorite ? "Favorit entfernen" : "Als Favorit markieren"}
+            onClick={() => {
+              void auth.toggleNavigationFavorite(href);
+            }}
+          >
+            <Star className={cn("h-4 w-4", isFavorite && "fill-current text-amber-500")} />
+          </Button>
+        )}
+      </div>
+    );
+  };
+
+  const renderFavoriteItem = (
+    href: string,
+    label: string,
+    description: string,
+    iconKey: Parameters<typeof getNavigationIcon>[0],
+    group: Parameters<typeof getNavigationGroupColors>[0],
+  ) => {
+    return (
+      <li
+        key={href}
+        draggable
+        onDragStart={(event) => {
+          event.dataTransfer.setData("text/favorite-href", href);
+          event.dataTransfer.effectAllowed = "move";
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          const sourceHref = event.dataTransfer.getData("text/favorite-href");
+          if (!sourceHref || sourceHref === href) {
+            return;
+          }
+          void auth.reorderNavigationFavorites(sourceHref, href);
+        }}
+      >
+        {renderLinkBody(href, label, description, iconKey, group)}
+      </li>
+    );
+  };
 
   if (visibleItems.length === 0) {
     return <p className="px-3 py-2 text-sm text-muted-foreground">Melde dich an, um Navigationseintraege zu sehen.</p>;
   }
 
   return (
-    <ul className="space-y-1">
-      {visibleItems.map((item) => {
-        const isActive = isActiveLink(item.href);
-
-        return (
-          <li key={item.href}>
-            <Link
-              href={item.href}
-              aria-current={isActive ? "page" : undefined}
-              className={cn(
-                "block border-l-2 border-l-transparent px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-l-border hover:bg-accent/40 hover:text-foreground",
-                isActive && "border-l-primary font-medium text-foreground",
-                compact ? "pl-2" : "",
-              )}
-            >
-              <span className="font-medium">{item.label}</span>
-              <p className="text-xs text-muted-foreground">{item.description}</p>
-            </Link>
-          </li>
-        );
-      })}
-    </ul>
+    <div className="space-y-4">
+      {favoriteItems.length > 0 && !isCollapsed && (
+        <section>
+          <h3 className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Favoriten</h3>
+          <ul className="space-y-1">
+            {favoriteItems.map((item) => renderFavoriteItem(item.href, item.label, item.description, item.icon, item.group))}
+          </ul>
+        </section>
+      )}
+      <section>
+        {!isCollapsed && (
+          <h3 className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Alle Bereiche</h3>
+        )}
+        <ul className="space-y-1">
+          {displayedItems.map((item) => {
+            const hasChildren = Boolean(item.children && item.children.length > 0);
+            const isExpanded = expandedItems[item.href] ?? false;
+            return (
+              <li key={item.href}>
+                <div className="flex items-start gap-1 rounded-md border border-transparent px-1 py-1">
+                  <div className="flex-1">{renderLinkBody(item.href, item.label, item.description, item.icon, item.group)}</div>
+                  {!isCollapsed && hasChildren && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="mt-1 h-8 w-8 shrink-0"
+                      aria-label={isExpanded ? "Unterseiten einklappen" : "Unterseiten ausklappen"}
+                      onClick={() => {
+                        setExpandedItems((prev) => ({ ...prev, [item.href]: !isExpanded }));
+                      }}
+                    >
+                      {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    </Button>
+                  )}
+                </div>
+                {!isCollapsed && hasChildren && isExpanded && (
+                  <ul className="mt-1 space-y-1">
+                    {item.children!.map((child) => (
+                      <li key={child.href}>
+                        {renderLinkBody(child.href, child.label, child.description, child.icon, child.group, true)}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    </div>
   );
 }
 
@@ -86,17 +193,32 @@ export function MobileSidebarMenu() {
 
 export default function Sidebar() {
   const auth = useAuth();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <aside className="hidden w-72 border-r bg-card px-4 py-6 md:block" aria-label="Hauptnavigation">
+    <aside className={cn("hidden border-r bg-card px-4 py-6 md:block", isCollapsed ? "w-20" : "w-72")} aria-label="Hauptnavigation">
       <div className="mb-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Navigation</h2>
+        <div className="flex items-center justify-between gap-2">
+          {!isCollapsed && <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Navigation</h2>}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            aria-label={isCollapsed ? "Sidebar ausklappen" : "Sidebar einklappen"}
+            onClick={() => setIsCollapsed((prev) => !prev)}
+          >
+            {isCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          </Button>
+        </div>
         {auth.status === "authenticated" && (
-          <p className="mt-1 text-xs text-muted-foreground">Tenant: {auth.tenantSlug || "nicht gesetzt"}</p>
+          <p className={cn("mt-1 text-xs text-muted-foreground", isCollapsed && "hidden")}>
+            Tenant: {auth.tenantSlug || "nicht gesetzt"}
+          </p>
         )}
       </div>
       <nav aria-label="Desktop Navigation">
-        <NavigationList />
+        <NavigationList compact={isCollapsed} />
       </nav>
     </aside>
   );

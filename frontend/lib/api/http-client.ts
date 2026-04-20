@@ -117,4 +117,7 @@ export const httpClient = {
   patch<T>(path: string, body?: unknown, options?: Omit<RequestOptions, "method" | "body">): Promise<T> {
     return requestInternal<T>(path, { ...options, method: "PATCH", body });
   },
+  put<T>(path: string, body?: unknown, options?: Omit<RequestOptions, "method" | "body">): Promise<T> {
+    return requestInternal<T>(path, { ...options, method: "PUT", body });
+  },
 };

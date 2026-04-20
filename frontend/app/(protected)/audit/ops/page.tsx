@@ -1,6 +1,6 @@
 "use client";
 
-import RequireRole from "@/components/auth/RequireRole";
+import RequireAccess from "@/components/auth/RequireAccess";
 import AuditArchiveForm from "@/components/audit-ops/AuditArchiveForm";
 import AuditHealthSnapshotCard from "@/components/audit-ops/AuditHealthSnapshotCard";
 import AuditIntegrityForm from "@/components/audit-ops/AuditIntegrityForm";
@@ -12,7 +12,7 @@ export default function AuditOpsPage() {
   const auth = useAuth();
 
   return (
-    <RequireRole roles={["audit_operator"]}>
+    <RequireAccess permissions={["audit.ops.manage"]}>
       <section className="space-y-5">
         <header className="space-y-1">
           <h1 className="text-3xl font-semibold tracking-tight">Audit Operator</h1>
@@ -28,6 +28,6 @@ export default function AuditOpsPage() {
           <AuditSetupRolesAction tenantSlug={auth.tenantSlug} />
         </div>
       </section>
-    </RequireRole>
+    </RequireAccess>
   );
 }

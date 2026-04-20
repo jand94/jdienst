@@ -36,7 +36,13 @@ import { AuthProvider, AuthContext } from "@/components/auth/AuthProvider";
 function Consumer() {
   return (
     <AuthContext.Consumer>
-      {(value) => <p>{value?.status ?? "none"}</p>}
+      {(value) => (
+        <div>
+          <p>{value?.status ?? "none"}</p>
+          <p>{value?.can("audit.events.read") ? "can-audit-read" : "cannot-audit-read"}</p>
+          <p>{value?.hasFeature("dynamic_authz_navigation") ? "feature-dynamic-on" : "feature-dynamic-off"}</p>
+        </div>
+      )}
     </AuthContext.Consumer>
   );
 }
@@ -62,6 +68,9 @@ describe("AuthProvider", () => {
       is_active: true,
       is_staff: true,
       date_joined: "2024-01-01T00:00:00Z",
+      permissions: ["audit.events.read", "settings.view"],
+      feature_flags: ["dynamic_authz_navigation"],
+      current_tenant_role: "admin",
     });
 
     render(
@@ -73,6 +82,8 @@ describe("AuthProvider", () => {
     await waitFor(() => {
       expect(screen.getByText("authenticated")).toBeInTheDocument();
     });
+    expect(screen.getByText("can-audit-read")).toBeInTheDocument();
+    expect(screen.getByText("feature-dynamic-on")).toBeInTheDocument();
     expect(getMyTenantsMock).toHaveBeenCalledTimes(1);
     expect(getMeMock).toHaveBeenCalledWith("tenant-a");
     expect(httpSetRefreshHandlerMock).toHaveBeenCalledTimes(1);

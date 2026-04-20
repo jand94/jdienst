@@ -50,12 +50,32 @@ def test_me_endpoint_returns_authenticated_user(api_client):
     assert response.status_code == 200
     assert response.data["id"] == user.id
     assert response.data["username"] == user.username
+    assert "permissions" in response.data
+    assert "feature_flags" in response.data
+    assert response.data["current_tenant_role"] == "member"
+    assert "dynamic_authz_navigation" in response.data["feature_flags"]
+    assert "settings.view" in response.data["permissions"]
+    assert "audit.ops.manage" not in response.data["permissions"]
     assert AuditEvent.objects.filter(
         action="accounts.user.read",
         target_model="accounts.User",
         target_id=str(user.pk),
         metadata__scope="self",
     ).exists()
+
+
+@pytest.mark.django_db
+def test_me_endpoint_cors_preflight_allows_tenant_header(api_client):
+    response = api_client.options(
+        reverse("accounts-user-me"),
+        HTTP_ORIGIN="http://localhost:3002",
+        HTTP_ACCESS_CONTROL_REQUEST_METHOD="GET",
+        HTTP_ACCESS_CONTROL_REQUEST_HEADERS="x-tenant-slug",
+    )
+
+    assert response.status_code == 200
+    allow_headers = response["access-control-allow-headers"].lower()
+    assert "x-tenant-slug" in allow_headers
 
 
 @pytest.mark.django_db
@@ -82,6 +102,9 @@ def test_patch_me_updates_profile_and_creates_audit_event(api_client):
         target_id=str(user.pk),
     ).first()
     assert event is not None
+    assert "permissions" in response.data
+    assert "feature_flags" in response.data
+    assert response.data["current_tenant_role"] == "member"
 
 
 @pytest.mark.django_db
@@ -211,6 +234,26 @@ def test_me_endpoint_rejects_user_without_tenant_membership(api_client):
 
 
 @pytest.mark.django_db
+def test_me_endpoint_permissions_follow_tenant_role(api_client):
+    user = UserFactory()
+    member_tenant = TenantFactory(slug="tenant-member")
+    owner_tenant = TenantFactory(slug="tenant-owner")
+    TenantMembershipFactory(user=user, tenant=member_tenant, role="member", is_active=True)
+    TenantMembershipFactory(user=user, tenant=owner_tenant, role="owner", is_active=True)
+    api_client.force_authenticate(user=user)
+
+    member_response = api_client.get(reverse("accounts-user-me"), HTTP_X_TENANT_SLUG=member_tenant.slug)
+    owner_response = api_client.get(reverse("accounts-user-me"), HTTP_X_TENANT_SLUG=owner_tenant.slug)
+
+    assert member_response.status_code == 200
+    assert owner_response.status_code == 200
+    assert member_response.data["current_tenant_role"] == "member"
+    assert owner_response.data["current_tenant_role"] == "owner"
+    assert "tenant.settings.manage" not in member_response.data["permissions"]
+    assert "tenant.settings.manage" in owner_response.data["permissions"]
+
+
+@pytest.mark.django_db
 def test_me_tenants_returns_active_memberships_without_tenant_header(api_client):
     user = UserFactory()
     tenant_a = TenantFactory(slug="tenant-a", name="Tenant A")
@@ -226,6 +269,32 @@ def test_me_tenants_returns_active_memberships_without_tenant_header(api_client)
     assert response.data[0]["tenant_slug"] == "tenant-a"
     assert response.data[0]["role"] == "owner"
     assert response.data[0]["is_active"] is True
+
+
+@pytest.mark.django_db
+def test_navigation_favorites_can_be_loaded_and_updated(api_client):
+    user = UserFactory(navigation_favorites=["/reports"])
+    api_client.force_authenticate(user=user)
+
+    get_response = api_client.get(reverse("accounts-user-navigation-favorites"))
+    assert get_response.status_code == 200
+    assert get_response.data["favorites"] == ["/reports"]
+
+    put_response = api_client.put(
+        reverse("accounts-user-navigation-favorites"),
+        data={"favorites": ["/settings", "/audit"]},
+        format="json",
+    )
+    assert put_response.status_code == 200
+    assert put_response.data["favorites"] == ["/settings", "/audit"]
+
+    user.refresh_from_db()
+    assert user.navigation_favorites == ["/settings", "/audit"]
+    assert AuditEvent.objects.filter(
+        action="accounts.user.navigation_favorites.updated",
+        target_model="accounts.User",
+        target_id=str(user.pk),
+    ).exists()
 
 
 @pytest.mark.django_db

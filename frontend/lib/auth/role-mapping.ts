@@ -9,6 +9,11 @@ const roleAliasMap: Record<string, AppRole> = {
   "audit.operator": "audit_operator",
 };
 
+const permissionRoleMap: Record<string, AppRole> = {
+  "audit.events.read": "audit_reader",
+  "audit.ops.manage": "audit_operator",
+};
+
 export function deriveRoles(user: SessionUser | null): AppRole[] {
   if (!user) {
     return [];
@@ -21,6 +26,12 @@ export function deriveRoles(user: SessionUser | null): AppRole[] {
   }
   for (const candidate of user.roles ?? []) {
     const mapped = roleAliasMap[candidate.trim().toLowerCase()];
+    if (mapped) {
+      resolved.add(mapped);
+    }
+  }
+  for (const permission of user.permissions ?? []) {
+    const mapped = permissionRoleMap[permission.trim().toLowerCase()];
     if (mapped) {
       resolved.add(mapped);
     }

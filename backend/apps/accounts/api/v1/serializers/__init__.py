@@ -1,3 +1,13 @@
-from .user import AccountUserReadSerializer, AccountUserTenantMembershipSerializer, AccountUserUpdateSerializer
+from .user import (
+    AccountNavigationFavoritesSerializer,
+    AccountUserReadSerializer,
+    AccountUserTenantMembershipSerializer,
+    AccountUserUpdateSerializer,
+)
 
-__all__ = ["AccountUserReadSerializer", "AccountUserUpdateSerializer", "AccountUserTenantMembershipSerializer"]
+__all__ = [
+    "AccountNavigationFavoritesSerializer",
+    "AccountUserReadSerializer",
+    "AccountUserUpdateSerializer",
+    "AccountUserTenantMembershipSerializer",
+]

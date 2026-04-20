@@ -162,3 +162,31 @@ def log_user_read_access(
         request_id=request_id,
         trace_id=trace_id,
     )
+
+
+def update_navigation_favorites(
+    *,
+    actor: User,
+    favorites: list[str],
+    source: str,
+    request_id: str | None = None,
+    trace_id: str | None = None,
+) -> User:
+    if actor.navigation_favorites == favorites:
+        return actor
+
+    actor.navigation_favorites = favorites
+    actor.save(update_fields=("navigation_favorites",))
+    record_audit_event(
+        action="accounts.user.navigation_favorites.updated",
+        target_model="accounts.User",
+        target_id=str(actor.pk),
+        actor=actor,
+        metadata={
+            "source": source,
+            "count": len(favorites),
+        },
+        request_id=request_id,
+        trace_id=trace_id,
+    )
+    return actor

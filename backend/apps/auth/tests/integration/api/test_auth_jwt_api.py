@@ -1,6 +1,7 @@
 import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from apps.common.models import AuditEvent
 from apps.common.tests.factories import TenantFactory, TenantMembershipFactory
@@ -76,6 +77,33 @@ def test_login_accepts_email_as_identifier(api_client):
     response = api_client.post(
         reverse("auth-login"),
         data={"username": user.email, "password": "SafePass123!"},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert "access" in response.data
+
+
+@pytest.mark.django_db
+def test_login_succeeds_without_csrf_even_with_existing_session_cookie():
+    user_model = get_user_model()
+    session_user_password = "SafePass123!"
+    session_user = user_model.objects.create_user(
+        username="jwt-session-user",
+        email="jwt-session-user@example.com",
+        password=session_user_password,
+    )
+    target_user = user_model.objects.create_user(
+        username="jwt-target-user",
+        email="jwt-target-user@example.com",
+        password="SafePass123!",
+    )
+    client = APIClient(enforce_csrf_checks=True)
+    assert client.login(username=session_user.username, password=session_user_password)
+
+    response = client.post(
+        reverse("auth-login"),
+        data={"username": target_user.username, "password": "SafePass123!"},
         format="json",
     )
 
