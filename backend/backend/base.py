@@ -75,6 +75,7 @@ THIRD_PARTY_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "django_filters",
     "drf_spectacular",
+    "channels",
 ]
 
 INTERNAL_APPS: list[str] = [
@@ -82,7 +83,9 @@ INTERNAL_APPS: list[str] = [
 
     "apps.accounts",
     "apps.common",
-    "apps.auth",]
+    "apps.auth",
+    "apps.notification",
+]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + INTERNAL_APPS
 
@@ -117,6 +120,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "backend.wsgi.application"
+ASGI_APPLICATION = "backend.asgi.application"
 
 
 # Database
@@ -203,6 +207,9 @@ REST_FRAMEWORK = {
         "auth_login": os.getenv("AUTH_LOGIN_RATE", "10/minute"),
         "auth_refresh": os.getenv("AUTH_REFRESH_RATE", "30/hour"),
         "auth_logout": os.getenv("AUTH_LOGOUT_RATE", "60/hour"),
+        "notification_create": os.getenv("NOTIFICATION_CREATE_RATE", "120/hour"),
+        "notification_mark_read": os.getenv("NOTIFICATION_MARK_READ_RATE", "240/hour"),
+        "notification_preference_update": os.getenv("NOTIFICATION_PREFERENCE_UPDATE_RATE", "120/hour"),
     },
     "EXCEPTION_HANDLER": "apps.common.api.v1.services.error_mapping_service.api_exception_handler",
 }
@@ -271,3 +278,56 @@ COMMON_TENANT_AUTO_RESOLVE_SINGLE_MEMBERSHIP = _env_bool(
 COMMON_TENANT_AUTO_ASSIGN_ON_USER_CREATE = _env_bool("COMMON_TENANT_AUTO_ASSIGN_ON_USER_CREATE", default=False)
 COMMON_TENANT_DEFAULT_ROLE = os.getenv("COMMON_TENANT_DEFAULT_ROLE", "member")
 COMMON_IDEMPOTENCY_RETENTION_SECONDS = int(os.getenv("COMMON_IDEMPOTENCY_RETENTION_SECONDS", "86400"))
+
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@example.com")
+EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
+EMAIL_PORT = _env_int("EMAIL_PORT", 587)
+EMAIL_USE_TLS = _env_bool("EMAIL_USE_TLS", default=False)
+EMAIL_USE_SSL = _env_bool("EMAIL_USE_SSL", default=False)
+EMAIL_HOST_USER = _env_optional("EMAIL_HOST_USER") or ""
+EMAIL_HOST_PASSWORD = _env_optional("EMAIL_HOST_PASSWORD") or ""
+EMAIL_TIMEOUT = _env_int("EMAIL_TIMEOUT", 10)
+TEST_RESULTS_EMAIL_ENABLED = _env_bool("TEST_RESULTS_EMAIL_ENABLED", default=True)
+TEST_RESULTS_EMAIL_RECIPIENTS = _env_list(
+    "TEST_RESULTS_EMAIL_RECIPIENTS",
+    default="jdienst@beckerccc.com",
+)
+TEST_RESULTS_EMAIL_SUBJECT_PREFIX = os.getenv("TEST_RESULTS_EMAIL_SUBJECT_PREFIX", "[pytest]")
+TEST_RESULTS_EMAIL_BRANCH = _env_optional("TEST_RESULTS_EMAIL_BRANCH")
+TEST_RESULTS_EMAIL_COMMIT = _env_optional("TEST_RESULTS_EMAIL_COMMIT")
+
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", os.getenv("REDIS_URL", "redis://redis:6379/0"))
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", CELERY_BROKER_URL)
+CELERY_TASK_ALWAYS_EAGER = _env_bool("CELERY_TASK_ALWAYS_EAGER", default=False)
+CELERY_TASK_EAGER_PROPAGATES = _env_bool("CELERY_TASK_EAGER_PROPAGATES", default=False)
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULE = {
+    "notification-dispatch-deliveries": {
+        "task": "notification.dispatch_pending_deliveries",
+        "schedule": int(os.getenv("NOTIFICATION_DELIVERY_CRON_SECONDS", "15")),
+    },
+    "notification-build-digests": {
+        "task": "notification.build_pending_digests",
+        "schedule": int(os.getenv("NOTIFICATION_DIGEST_BUILD_CRON_SECONDS", "300")),
+    },
+    "notification-dispatch-digests": {
+        "task": "notification.dispatch_pending_digests",
+        "schedule": int(os.getenv("NOTIFICATION_DIGEST_DISPATCH_CRON_SECONDS", "300")),
+    },
+}
+
+REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [REDIS_URL],
+        },
+    }
+}
+
+NOTIFICATION_DIGEST_WINDOW_MINUTES = _env_int("NOTIFICATION_DIGEST_WINDOW_MINUTES", 60)

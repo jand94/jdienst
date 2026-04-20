@@ -10,6 +10,7 @@ Implementiere Backend-Aenderungen in Django/DRF strikt schichtentreu und testbar
 
 - `CLAUDE.md` ist bindend.
 - Backend-Regeln aus `docs/engineering/backend.md` sind verpflichtend.
+- Bei Notification-Bezug sind Regeln aus `docs/engineering/notifications.md` verpflichtend.
 - API-, Security-, Test- und CI-Auswirkungen aktiv mitpruefen.
 
 ## Guardrails

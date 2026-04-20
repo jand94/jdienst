@@ -18,6 +18,13 @@ from apps.auth.api.v1.services import login_with_credentials, logout_with_refres
 from apps.common.api.v1.services import extract_audit_correlation_ids
 
 
+class AuthFailureStatusMixin:
+    # Ensures AuthenticationFailed maps to 401 instead of 403
+    # for endpoints that intentionally skip authentication classes.
+    def get_authenticate_header(self, request):
+        return "Bearer"
+
+
 def _set_refresh_cookie(response: Response, *, refresh_token: str) -> None:
     response.set_cookie(
         key=settings.AUTH_REFRESH_COOKIE_NAME,
@@ -50,7 +57,7 @@ def _extract_request_security_context(request) -> tuple[str | None, str]:
     return ip_address, user_agent
 
 
-class AuthLoginView(GenericAPIView):
+class AuthLoginView(AuthFailureStatusMixin, GenericAPIView):
     authentication_classes = []
     permission_classes = [AllowAny]
     throttle_classes = [ScopedRateThrottle]
@@ -78,7 +85,7 @@ class AuthLoginView(GenericAPIView):
         return response
 
 
-class AuthRefreshView(GenericAPIView):
+class AuthRefreshView(AuthFailureStatusMixin, GenericAPIView):
     authentication_classes = []
     permission_classes = [AllowAny]
     throttle_classes = [ScopedRateThrottle]

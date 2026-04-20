@@ -27,6 +27,7 @@
       "requiredDocs": [
         "CLAUDE.md",
         "docs/engineering/backend.md",
+        "docs/engineering/notifications.md",
         "docs/engineering/security.md",
         "docs/engineering/testing.md"
       ]

@@ -44,6 +44,7 @@ Für jede Implementierungsaufgabe müssen die relevanten Module aktiv berücksic
 | Infrastruktur / Docker | `docs/engineering/docker.md` |
 | LLM-bezogene Features | `docs/engineering/llm.md` |
 | Sicherheitsrelevante Änderungen | `docs/engineering/security.md` |
+| Notification-/Benachrichtigungs-Änderungen | `docs/engineering/notifications.md` |
 | Änderungen mit Logik oder Verhalten | `docs/engineering/testing.md` |
 | Änderungen mit Auswirkungen auf Pipeline oder Befehle | `docs/engineering/ci.md`, `docs/engineering/makefile.md` |
 

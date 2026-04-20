@@ -24,6 +24,7 @@ Dieses Dokument ergänzt die verbindlichen Regeln aus:
 - `docs/engineering/api.md`
 - `docs/engineering/frontend.md`
 - `docs/engineering/security.md`
+- `docs/engineering/notifications.md` (bei Notification-Bezug)
 - `docs/engineering/testing.md`
 - `docs/engineering/ci.md`
 - `docs/engineering/docker.md`
@@ -214,6 +215,7 @@ Implementiert Backend-Änderungen in Django und DRF entlang der projektweiten Sc
 
 > Du bist der `backend-implementer` für `jdienst`.
 > Implementiere Backend-Änderungen strikt gemäß `CLAUDE.md` und `docs/engineering/backend.md`.
+> Bei Notification-Bezug sind Regeln aus `docs/engineering/notifications.md` verpflichtend.
 > Halte Views dünn, verwende Services für nicht-triviale Logik und behandle Serializer ausschließlich als Validierungs- und Transformationsschicht.
 > Arbeite explizit, testbar und reviewbar.
 > Benenne Security-, API-, Test- und Performance-Folgen aktiv.

@@ -1,4 +1,8 @@
 services:
+  redis:
+    image: redis:${REDIS_VERSION:-7-alpine}
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+
   db:
     image: postgres:${POSTGRES_VERSION:-16-alpine}
     environment:
@@ -29,6 +33,23 @@ services:
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
       CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      EMAIL_BACKEND: ${EMAIL_BACKEND:-django.core.mail.backends.smtp.EmailBackend}
+      EMAIL_HOST: ${EMAIL_HOST:-mail-relay}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-0}
+      EMAIL_USE_SSL: ${EMAIL_USE_SSL:-0}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-noreply@example.com}
+      EMAIL_TIMEOUT: ${EMAIL_TIMEOUT:-10}
+      TEST_RESULTS_EMAIL_ENABLED: ${TEST_RESULTS_EMAIL_ENABLED:-1}
+      TEST_RESULTS_EMAIL_RECIPIENTS: ${TEST_RESULTS_EMAIL_RECIPIENTS:-jdienst@beckerccc.com}
+      TEST_RESULTS_EMAIL_SUBJECT_PREFIX: ${TEST_RESULTS_EMAIL_SUBJECT_PREFIX:-[pytest]}
+      TEST_RESULTS_EMAIL_BRANCH: ${TEST_RESULTS_EMAIL_BRANCH:-}
+      TEST_RESULTS_EMAIL_COMMIT: ${TEST_RESULTS_EMAIL_COMMIT:-}
     volumes:
       - ./backend:/app
     ports:
@@ -36,6 +57,74 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
+
+  worker:
+    build:
+      context: ./backend
+    command: celery -A backend worker -l info
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-django-insecure-local-dev-key-change-me}
+      DEBUG: ${DEBUG:-1}
+      DB_ENGINE: ${DB_ENGINE:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
+      POSTGRES_HOST: ${POSTGRES_HOST:-db}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      EMAIL_BACKEND: ${EMAIL_BACKEND:-django.core.mail.backends.smtp.EmailBackend}
+      EMAIL_HOST: ${EMAIL_HOST:-mail-relay}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-0}
+      EMAIL_USE_SSL: ${EMAIL_USE_SSL:-0}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-noreply@example.com}
+      EMAIL_TIMEOUT: ${EMAIL_TIMEOUT:-10}
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  beat:
+    build:
+      context: ./backend
+    command: celery -A backend beat -l info
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-django-insecure-local-dev-key-change-me}
+      DEBUG: ${DEBUG:-1}
+      DB_ENGINE: ${DB_ENGINE:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
+      POSTGRES_HOST: ${POSTGRES_HOST:-db}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      EMAIL_BACKEND: ${EMAIL_BACKEND:-django.core.mail.backends.smtp.EmailBackend}
+      EMAIL_HOST: ${EMAIL_HOST:-mail-relay}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-0}
+      EMAIL_USE_SSL: ${EMAIL_USE_SSL:-0}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-noreply@example.com}
+      EMAIL_TIMEOUT: ${EMAIL_TIMEOUT:-10}
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   frontend:
     build:

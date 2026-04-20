@@ -1,6 +1,6 @@
 import type { AppPermission } from "@/lib/auth/session-types";
 import type { LucideIcon } from "lucide-react";
-import { BarChart3, LayoutDashboard, Settings, ShieldCheck, Users, Wrench } from "lucide-react";
+import { BarChart3, Bell, LayoutDashboard, Settings, ShieldCheck, Users, Wrench } from "lucide-react";
 
 /**
  * Navigation-Konfiguration (Single Source of Truth)
@@ -22,7 +22,16 @@ import { BarChart3, LayoutDashboard, Settings, ShieldCheck, Users, Wrench } from
  * - Favoriten (Top-Level + Child) nutzen dieselben href-Werte und werden backend-persistent gespeichert.
  */
 export type NavigationGroupKey = "core" | "audit" | "reports" | "settings";
-export type NavigationIconKey = "dashboard" | "auditEvents" | "auditOps" | "reports" | "settings" | "users" | "crm";
+export type NavigationIconKey =
+  | "dashboard"
+  | "auditEvents"
+  | "auditOps"
+  | "reports"
+  | "settings"
+  | "users"
+  | "crm"
+  | "notifications"
+  | "notificationPreferences";
 
 export type NavigationGroupColorClasses = {
   icon: string;
@@ -59,6 +68,8 @@ export const navigationIconRegistry: Record<NavigationIconKey, LucideIcon> = {
   settings: Settings,
   users: Users,
   crm: BarChart3,
+  notifications: Bell,
+  notificationPreferences: Bell,
 };
 
 export const navigationGroupColors: Record<NavigationGroupKey, NavigationGroupColorClasses> = {
@@ -97,6 +108,23 @@ export const navigationItems: NavigationItem[] = [
     group: "core",
     requiresAuth: true,
     requiredPermissions: ["dashboard.view"],
+  },
+  {
+    href: "/notifications",
+    label: "Notifications",
+    description: "In-App Benachrichtigungen und Status",
+    icon: "notifications",
+    group: "core",
+    requiresAuth: true,
+    children: [
+      {
+        href: "/notifications/preferences",
+        label: "Notification Praeferenzen",
+        description: "In-App oder Mail pro Notification-Typ",
+        icon: "notificationPreferences",
+        group: "core",
+      },
+    ],
   },
   {
     href: "/audit",
