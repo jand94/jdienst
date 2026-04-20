@@ -85,7 +85,8 @@ INTERNAL_APPS: list[str] = [
     "apps.common",
     "apps.auth",
     "apps.notification",
-]
+
+    "apps.fetests",]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + INTERNAL_APPS
 
