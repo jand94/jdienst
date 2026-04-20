@@ -5,7 +5,7 @@ BACKEND_SERVICE := backend
 FRONTEND_SERVICE := frontend
 ENV_FILE := .env
 
-.PHONY: help init-env bootstrap up up-d down build logs logs-frontend logs-fe logs-backend logs-be ps shell be-shell fe-shell restart-frontend restart-fe restart-backend restart-be recreate-frontend recreate-fe recreate-backend recreate-be makemigrations migrate create-superuser createsuperuser superuser test test-be schema schema-validate worker beat validate-agents-manifest validate-backend-conventions validate-text-encoding ci
+.PHONY: help init-env bootstrap up up-d down build logs logs-frontend logs-fe logs-backend logs-be ps shell be-shell fe-shell restart-frontend restart-fe restart-backend restart-be recreate-frontend recreate-fe recreate-backend recreate-be makemigrations migrate create-superuser createsuperuser superuser test test-be schema schema-validate worker beat notification-health notification-dispatch notification-seed-fixture validate-agents-manifest validate-backend-conventions validate-text-encoding ci
 
 help: ## Zeigt verfügbare Make-Targets
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z0-9_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -105,6 +105,19 @@ worker: ## Startet optional nur den Worker-Service
 
 beat: ## Startet optional nur den Celery-Beat-Service
 	$(COMPOSE) up beat
+
+notification-health: ## Zeigt Notification-Health-/SLO-Snapshot (JSON)
+	$(COMPOSE) exec $(BACKEND_SERVICE) python manage.py notification_health_snapshot --window-hours 24
+
+notification-dispatch: ## Startet sofortige Verarbeitung faelliger Notification-Deliveries
+	$(COMPOSE) exec $(BACKEND_SERVICE) python manage.py notification_dispatch_pending --limit 200
+
+notification-seed-fixture: ## Seedet Notification-Diagnosedaten (TENANT_SLUG, USER_EMAIL erforderlich)
+	@if [ -z "$(TENANT_SLUG)" ] || [ -z "$(USER_EMAIL)" ]; then \
+		echo "Bitte TENANT_SLUG und USER_EMAIL setzen, z. B. make notification-seed-fixture TENANT_SLUG=acme USER_EMAIL=admin@example.com"; \
+		exit 1; \
+	fi
+	$(COMPOSE) exec $(BACKEND_SERVICE) python manage.py notification_seed_fixture --tenant-slug $(TENANT_SLUG) --user-email $(USER_EMAIL)
 
 validate-agents-manifest: ## Validiert docs/engineering/agents/manifest.json und referenzierte Dateien
 	python3 scripts/validate_agents_manifest.py

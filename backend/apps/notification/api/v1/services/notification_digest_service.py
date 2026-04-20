@@ -7,7 +7,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.common.api.v1.services import record_audit_event
-from apps.notification.api.v1.services.notification_mail_service import send_digest_email
+from apps.notification.api.v1.services.notification_mail_service import NotificationMailDeliveryError, send_digest_email
+from apps.notification.api.v1.services.notification_observability_service import log_pipeline_event
 from apps.notification.models import Notification, NotificationDigest, UserNotificationPreference
 
 
@@ -53,6 +54,13 @@ def build_pending_digests(*, now=None) -> int:
             notification_type__user_preferences__is_subscribed=False,
         )
         digest.notifications.set(digest_notifications)
+        log_pipeline_event(
+            event="notification.digest.build.created",
+            digest_id=str(digest.pk),
+            tenant_id=str(tenant_id),
+            recipient_id=str(recipient_id),
+            notification_count=digest_notifications.count(),
+        )
         created += 1
     return created
 
@@ -67,10 +75,23 @@ def dispatch_pending_digests(*, limit: int = 50) -> int:
     processed = 0
     for digest in digests:
         notifications = list(digest.notifications.all())
+        log_pipeline_event(
+            event="notification.digest.dispatch.start",
+            digest_id=str(digest.pk),
+            recipient_id=str(digest.recipient_id),
+            status=digest.status,
+            attempts=digest.attempts,
+            notification_count=len(notifications),
+        )
         if not notifications:
             digest.status = NotificationDigest.STATUS_SENT
             digest.sent_at = timezone.now()
             digest.save(update_fields=("status", "sent_at", "updated_at"))
+            log_pipeline_event(
+                event="notification.digest.dispatch.empty",
+                digest_id=str(digest.pk),
+                recipient_id=str(digest.recipient_id),
+            )
             continue
         try:
             subject = f"{len(notifications)} neue Benachrichtigungen"
@@ -94,10 +115,37 @@ def dispatch_pending_digests(*, limit: int = 50) -> int:
                     actor=None,
                     metadata={"source": "scheduler", "notifications": len(notifications), "sent_count": sent_count},
                 )
+                log_pipeline_event(
+                    event="notification.digest.dispatch.complete",
+                    digest_id=str(digest.pk),
+                    recipient_id=str(digest.recipient_id),
+                    status=digest.status,
+                    sent_count=sent_count,
+                    attempts=digest.attempts,
+                )
+        except NotificationMailDeliveryError as exc:
+            digest.attempts += 1
+            digest.status = NotificationDigest.STATUS_FAILED
+            digest.last_error = exc.reason
+            digest.save(update_fields=("attempts", "status", "last_error", "updated_at"))
+            log_pipeline_event(
+                event="notification.digest.dispatch.mail_error",
+                digest_id=str(digest.pk),
+                recipient_id=str(digest.recipient_id),
+                reason=exc.reason,
+                attempts=digest.attempts,
+            )
         except Exception as exc:  # noqa: BLE001
             digest.attempts += 1
             digest.status = NotificationDigest.STATUS_FAILED
             digest.last_error = str(exc)
             digest.save(update_fields=("attempts", "status", "last_error", "updated_at"))
+            log_pipeline_event(
+                event="notification.digest.dispatch.error",
+                digest_id=str(digest.pk),
+                recipient_id=str(digest.recipient_id),
+                error=str(exc),
+                attempts=digest.attempts,
+            )
         processed += 1
     return processed

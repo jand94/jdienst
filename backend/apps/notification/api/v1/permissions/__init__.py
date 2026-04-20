@@ -1,3 +1,3 @@
-from .notification_api import IsStaffNotificationWriter
+from .notification_api import IsNotificationOperator, IsStaffNotificationWriter
 
-__all__ = ["IsStaffNotificationWriter"]
+__all__ = ["IsNotificationOperator", "IsStaffNotificationWriter"]

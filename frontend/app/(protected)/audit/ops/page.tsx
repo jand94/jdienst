@@ -4,6 +4,7 @@ import RequireAccess from "@/components/auth/RequireAccess";
 import AuditArchiveForm from "@/components/audit-ops/AuditArchiveForm";
 import AuditHealthSnapshotCard from "@/components/audit-ops/AuditHealthSnapshotCard";
 import AuditIntegrityForm from "@/components/audit-ops/AuditIntegrityForm";
+import NotificationHealthSnapshotCard from "@/components/audit-ops/NotificationHealthSnapshotCard";
 import AuditSetupRolesAction from "@/components/audit-ops/AuditSetupRolesAction";
 import AuditSiemPreviewPanel from "@/components/audit-ops/AuditSiemPreviewPanel";
 import { useAuth } from "@/hooks/use-auth";
@@ -22,6 +23,7 @@ export default function AuditOpsPage() {
         </header>
         <div className="grid gap-4 xl:grid-cols-2">
           <AuditHealthSnapshotCard tenantSlug={auth.tenantSlug} />
+          <NotificationHealthSnapshotCard tenantSlug={auth.tenantSlug} />
           <AuditIntegrityForm tenantSlug={auth.tenantSlug} />
           <AuditSiemPreviewPanel tenantSlug={auth.tenantSlug} />
           <AuditArchiveForm tenantSlug={auth.tenantSlug} />

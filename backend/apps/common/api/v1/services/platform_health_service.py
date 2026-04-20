@@ -31,12 +31,20 @@ def cleanup_soft_deleted_tenants(*, older_than_days: int = 30) -> int:
 
 def collect_platform_health_snapshot(*, window_hours: int = 24) -> dict:
     audit_snapshot = collect_audit_health_snapshot(window_hours=window_hours)
+    notification_snapshot = None
+    try:
+        from apps.notification.api.v1.services.notification_health_service import collect_notification_health_snapshot
+
+        notification_snapshot = collect_notification_health_snapshot(window_hours=window_hours)
+    except Exception:  # noqa: BLE001
+        notification_snapshot = None
     return {
         "window_hours": window_hours,
         "audit": audit_snapshot,
         "idempotency": collect_idempotency_health_snapshot(),
         "outbox": collect_outbox_health_snapshot(),
         "tenant": collect_tenant_consistency_snapshot(),
+        "notification": notification_snapshot,
     }
 
 
@@ -89,6 +97,15 @@ def run_platform_check(*, window_hours: int = 24) -> dict:
             },
         }
     )
+    notification_snapshot = snapshot.get("notification")
+    if notification_snapshot:
+        checks.append(
+            {
+                "name": "notification_pipeline_health",
+                "passed": bool(notification_snapshot.get("passed", False)),
+                "details": notification_snapshot,
+            }
+        )
     passed = all(item["passed"] for item in checks)
     return {
         "passed": passed,

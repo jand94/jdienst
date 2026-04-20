@@ -24,7 +24,13 @@ def set_user_preference(
     request_id: str | None = None,
     trace_id: str | None = None,
 ) -> UserNotificationPreference:
-    preference, _ = UserNotificationPreference.objects.update_or_create(
+    existing = UserNotificationPreference.objects.filter(
+        user=user,
+        notification_type=notification_type,
+        channel=channel,
+    ).first()
+    previous_value = existing.is_subscribed if existing is not None else None
+    preference, created = UserNotificationPreference.objects.update_or_create(
         user=user,
         notification_type=notification_type,
         channel=channel,
@@ -37,9 +43,12 @@ def set_user_preference(
         actor=user,
         metadata={
             "source": "api",
+            "classification": "security_preference_change",
             "notification_type_key": notification_type.key,
             "channel": channel,
             "is_subscribed": is_subscribed,
+            "previous_is_subscribed": previous_value,
+            "change_type": "created" if created else "updated",
         },
         request_id=request_id,
         trace_id=trace_id,

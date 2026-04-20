@@ -39,6 +39,33 @@ Ergaenzt `CLAUDE.md`. Bei Widerspruch gilt die Regel-Prioritaet aus `CLAUDE.md`.
 - Primaerer Trigger fuer neue Notifications ist die Notification-API bzw. Notification-Service.
 - Direkte Kanal-Implementierungen ausserhalb der Notification-Domaene sind nicht zulaessig.
 
+### Rollen und Berechtigungen
+
+- Notification-Erstellung (`POST /notification/v1/notifications/`) bleibt auf Staff/Operator-Rollen begrenzt.
+- User-Self-Service ist auf eigene Inbox-Reads und eigene Preference-Aenderungen beschraenkt.
+- Ops-Snapshots (`/notification/v1/ops/health-snapshot/`) sind nur fuer Operator-/Staff-Rollen freigegeben.
+- Permission-Denials auf sensitiven Notification-Routen muessen als `security.permission.denied` Audit-Event erfasst werden.
+
+### Rate Limits / Abuse-Schutz
+
+- Mutation-Endpunkte muessen eigene Throttle-Scopes besitzen (`create`, `mark_read`, `bulk_mark_read`, `preference_update`).
+- Ops-Endpunkte erhalten eigenes Throttle-Budget, damit Monitoring nicht Mutations-Traffic beeinflusst.
+- Grenzwerte werden ueber Environment-Variablen konfiguriert und duerfen nicht hartkodiert werden.
+
+### API-Lifecycle / Deprecation-Playbook
+
+- Notification-API-Aenderungen bleiben innerhalb von `v1` nur non-breaking (additiv, rueckwaertskompatibel).
+- Breaking-Changes (Feldtyp, Pflichtfeld, Semantik, Statuscode) erfordern:
+  - neuen API-Namespace (`/api/notification/v2/...`) statt stiller Mutation
+  - dokumentierten Rollout-Plan mit Sunset-Datum fuer alte Route
+  - Contract-Tests fuer alt+neu bis zur vollstaendigen Migration.
+- Deprecation-Hinweise werden in OpenAPI-Beschreibung und Changelog explizit markiert.
+
+### Developer Experience / Diagnose
+
+- Fuer Notification-Diagnosen sind standardisierte Make-Targets bereitzustellen (Health, Dispatch, Seed).
+- Diagnose-/Incident-Ablauf ist im Notification-Runbook zu dokumentieren und aktuell zu halten.
+
 ### Fehler- und Retry-Verhalten
 
 - Kanalfehler duerfen den persistierten Notification-Status nicht inkonsistent machen.

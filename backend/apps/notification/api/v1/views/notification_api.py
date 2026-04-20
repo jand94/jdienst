@@ -4,17 +4,20 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.viewsets import GenericViewSet
 
 from apps.common.api.v1.services import ensure_user_in_tenant, extract_audit_correlation_ids, require_tenant
+from apps.common.api.v1.serializers import PlatformHealthQuerySerializer
 from apps.common.models import TenantMembership
-from apps.notification.api.v1.permissions import IsStaffNotificationWriter
+from apps.notification.api.v1.permissions import IsNotificationOperator, IsStaffNotificationWriter
 from apps.notification.api.v1.schema import (
     notification_bulk_mark_read_schema,
     notification_mark_read_schema,
+    notification_ops_snapshot_schema,
     notification_preference_viewset_schema,
     notification_viewset_schema,
 )
@@ -32,6 +35,7 @@ from apps.notification.api.v1.services import (
     mark_notification_as_read,
     mark_notifications_as_read_bulk,
     set_user_preference,
+    collect_notification_health_snapshot,
 )
 from apps.notification.models import Notification, NotificationType
 
@@ -51,8 +55,10 @@ class NotificationViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, Generi
     def get_throttles(self):
         if self.action == "create":
             self.throttle_scope = "notification_create"
-        elif self.action in {"mark_read", "bulk_mark_read"}:
+        elif self.action == "mark_read":
             self.throttle_scope = "notification_mark_read"
+        elif self.action == "bulk_mark_read":
+            self.throttle_scope = "notification_bulk_mark_read"
         else:
             self.throttle_scope = None
         return super().get_throttles()
@@ -80,10 +86,7 @@ class NotificationViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, Generi
             is_active=True,
         ).exists()
         if not is_member:
-            return Response(
-                {"detail": "Recipient is not an active member of the tenant."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ValidationError({"recipient_id": "Recipient is not an active member of the tenant."})
         request_id, trace_id = extract_audit_correlation_ids(request)
         notification = create_notification(
             tenant=tenant,
@@ -141,7 +144,7 @@ class NotificationPreferenceViewSet(mixins.ListModelMixin, mixins.CreateModelMix
     throttle_classes = [ScopedRateThrottle]
 
     def get_throttles(self):
-        self.throttle_scope = "notification_preference_update" if self.action == "create" else None
+        self.throttle_scope = "notification_preference_update" if self.action in {"create"} else None
         return super().get_throttles()
 
     def get_queryset(self):
@@ -172,3 +175,23 @@ class NotificationPreferenceViewSet(mixins.ListModelMixin, mixins.CreateModelMix
             NotificationPreferenceReadSerializer(preference).data,
             status=status.HTTP_201_CREATED,
         )
+
+
+class NotificationOpsViewSet(GenericViewSet):
+    permission_classes = [IsNotificationOperator]
+    serializer_class = PlatformHealthQuerySerializer
+    throttle_classes = [ScopedRateThrottle]
+
+    def get_throttles(self):
+        self.throttle_scope = "notification_ops_snapshot" if self.action == "health_snapshot" else None
+        return super().get_throttles()
+
+    @notification_ops_snapshot_schema
+    @action(detail=False, methods=["get"], url_path="health-snapshot")
+    def health_snapshot(self, request):
+        serializer = self.serializer_class(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        payload = collect_notification_health_snapshot(
+            window_hours=serializer.validated_data.get("window_hours", 24),
+        )
+        return Response(payload, status=status.HTTP_200_OK)

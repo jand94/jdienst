@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import RequireAuth from "@/components/auth/RequireAuth";
 import { Button } from "@/components/ui/button";
@@ -28,48 +28,48 @@ export default function NotificationPreferencesPage() {
   const [loading, setLoading] = useState(false);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadPreferences = useCallback(async () => {
     if (auth.status !== "authenticated") {
       return;
     }
+    setLoading(true);
+    setError(null);
+    try {
+      const [loadedPreferences, loadedNotifications] = await Promise.all([
+        listNotificationPreferences(auth.tenantSlug),
+        listNotifications(auth.tenantSlug, true),
+      ]);
+      setPreferences(loadedPreferences);
+      const typeMap = new Map<string, NotificationTypeSummary>();
+      for (const preference of loadedPreferences) {
+        typeMap.set(preference.notification_type.key, preference.notification_type);
+      }
+      for (const notification of loadedNotifications) {
+        typeMap.set(notification.notification_type.key, notification.notification_type);
+      }
+      setKnownTypes(Array.from(typeMap.values()).sort((a, b) => a.title.localeCompare(b.title)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Notification-Praeferenzen konnten nicht geladen werden.");
+    } finally {
+      setLoading(false);
+    }
+  }, [auth.status, auth.tenantSlug]);
+
+  useEffect(() => {
     let active = true;
     const run = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const [loadedPreferences, loadedNotifications] = await Promise.all([
-          listNotificationPreferences(auth.tenantSlug),
-          listNotifications(auth.tenantSlug, true),
-        ]);
-        if (!active) {
-          return;
-        }
-        setPreferences(loadedPreferences);
-        const typeMap = new Map<string, NotificationTypeSummary>();
-        for (const preference of loadedPreferences) {
-          typeMap.set(preference.notification_type.key, preference.notification_type);
-        }
-        for (const notification of loadedNotifications) {
-          typeMap.set(notification.notification_type.key, notification.notification_type);
-        }
-        setKnownTypes(Array.from(typeMap.values()).sort((a, b) => a.title.localeCompare(b.title)));
-      } catch (err) {
-        if (!active) {
-          return;
-        }
-        setError(err instanceof Error ? err.message : "Notification-Praeferenzen konnten nicht geladen werden.");
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
+      if (!active) {
+        return;
       }
+      await loadPreferences();
     };
     void run();
     return () => {
       active = false;
     };
-  }, [auth.status, auth.tenantSlug]);
+  }, [loadPreferences]);
 
   const preferenceMap = useMemo(() => {
     const map = new Map<string, NotificationPreference>();
@@ -98,6 +98,7 @@ export default function NotificationPreferencesPage() {
     const token = `${typeKey}:${channel}`;
     setSavingKey(token);
     setError(null);
+    setInfo(null);
     try {
       const updated = await updateNotificationPreference(auth.tenantSlug, {
         notification_type_key: typeKey,
@@ -110,6 +111,7 @@ export default function NotificationPreferencesPage() {
         );
         return [...filtered, updated];
       });
+      setInfo(`Praeferenz gespeichert: ${typeKey} / ${channelLabel(channel)}.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Praeferenz konnte nicht gespeichert werden.");
     } finally {
@@ -127,8 +129,15 @@ export default function NotificationPreferencesPage() {
           </p>
         </header>
 
-        {loading && <p className="text-sm text-muted-foreground">Praeferenzen werden geladen...</p>}
-        {error && <p className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
+        <div aria-live="polite" className="space-y-2">
+          {loading && (
+            <p className="rounded-md border border-border/60 bg-muted/30 p-3 text-sm text-muted-foreground">
+              Praeferenzen werden geladen...
+            </p>
+          )}
+          {error && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
+          {info && <p className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{info}</p>}
+        </div>
 
         {!loading && knownTypes.length === 0 ? (
           <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
@@ -137,32 +146,38 @@ export default function NotificationPreferencesPage() {
         ) : (
           <div className="overflow-x-auto rounded-lg border">
             <table className="min-w-full border-collapse text-sm">
+              <caption className="sr-only">
+                Notification-Praeferenzen je Notification-Typ mit Kanaelen In-App und Mail.
+              </caption>
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="px-3 py-2 text-left font-medium">Notification-Typ</th>
-                  <th className="px-3 py-2 text-left font-medium">Schluessel</th>
-                  <th className="px-3 py-2 text-left font-medium">In-App</th>
-                  <th className="px-3 py-2 text-left font-medium">Mail</th>
+                  <th scope="col" className="px-3 py-2 text-left font-medium">Notification-Typ</th>
+                  <th scope="col" className="px-3 py-2 text-left font-medium">Schluessel</th>
+                  <th scope="col" className="px-3 py-2 text-left font-medium">In-App</th>
+                  <th scope="col" className="px-3 py-2 text-left font-medium">Mail</th>
                 </tr>
               </thead>
               <tbody>
                 {knownTypes.map((typeItem) => (
                   <tr key={typeItem.key} className="border-t">
-                    <td className="px-3 py-2">
+                    <th scope="row" className="px-3 py-2 text-left">
                       <p className="font-medium">{typeItem.title}</p>
                       {typeItem.description && <p className="text-xs text-muted-foreground">{typeItem.description}</p>}
-                    </td>
+                    </th>
                     <td className="px-3 py-2 text-xs text-muted-foreground">{typeItem.key}</td>
                     {SUPPORTED_CHANNELS.map((channel) => {
                       const checked = resolveChecked(typeItem.key, channel);
                       const rowKey = `${typeItem.key}:${channel}`;
+                      const inputId = `pref-${typeItem.key}-${channel}`;
                       return (
                         <td key={rowKey} className="px-3 py-2">
-                          <label className="inline-flex items-center gap-2">
+                          <label htmlFor={inputId} className="inline-flex items-center gap-2">
                             <input
+                              id={inputId}
                               type="checkbox"
                               checked={checked}
                               disabled={savingKey === rowKey}
+                              aria-label={`${typeItem.title}: ${channelLabel(channel)} aktivieren`}
                               onChange={(event) => {
                                 void onToggle(typeItem.key, channel, event.target.checked);
                               }}
@@ -184,19 +199,9 @@ export default function NotificationPreferencesPage() {
             type="button"
             variant="outline"
             onClick={() => {
-              if (auth.status !== "authenticated") {
-                return;
-              }
-              void (async () => {
-                setLoading(true);
-                try {
-                  const refreshedPreferences = await listNotificationPreferences(auth.tenantSlug);
-                  setPreferences(refreshedPreferences);
-                } finally {
-                  setLoading(false);
-                }
-              })();
+              void loadPreferences();
             }}
+            disabled={loading}
           >
             Aktualisieren
           </Button>

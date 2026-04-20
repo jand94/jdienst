@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import RequireAuth from "@/components/auth/RequireAuth";
 import { Button } from "@/components/ui/button";
@@ -26,38 +26,46 @@ export default function NotificationsPage() {
   const [includeArchived, setIncludeArchived] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  useEffect(() => {
-    if (auth.status !== "authenticated") {
-      return;
-    }
-    let active = true;
-    const run = async () => {
-      setLoading(true);
+  const loadNotifications = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (auth.status !== "authenticated") {
+        return;
+      }
+      const isSilent = Boolean(options?.silent);
+      if (!isSilent) {
+        setLoading(true);
+      }
       setError(null);
       try {
         const payload = await listNotifications(auth.tenantSlug, includeArchived);
-        if (!active) {
-          return;
-        }
         setNotifications(payload);
       } catch (err) {
-        if (!active) {
-          return;
-        }
         setError(err instanceof Error ? err.message : "Notifications konnten nicht geladen werden.");
       } finally {
-        if (active) {
+        if (!isSilent) {
           setLoading(false);
         }
       }
+    },
+    [auth.status, auth.tenantSlug, includeArchived],
+  );
+
+  useEffect(() => {
+    let active = true;
+    const run = async () => {
+      if (!active) {
+        return;
+      }
+      await loadNotifications();
     };
     void run();
     return () => {
       active = false;
     };
-  }, [auth.status, auth.tenantSlug, includeArchived]);
+  }, [loadNotifications]);
 
   const unreadCount = useMemo(
     () => notifications.filter((notification) => notification.status === "unread").length,
@@ -70,9 +78,11 @@ export default function NotificationsPage() {
     }
     setActionLoading(true);
     setError(null);
+    setInfo(null);
     try {
       const updated = await markNotificationAsRead(auth.tenantSlug, notificationId);
       setNotifications((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+      setInfo("Notification wurde als gelesen markiert.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Notification konnte nicht aktualisiert werden.");
     } finally {
@@ -90,11 +100,13 @@ export default function NotificationsPage() {
     }
     setActionLoading(true);
     setError(null);
+    setInfo(null);
     try {
       await bulkMarkNotificationsAsRead(auth.tenantSlug, unreadIds);
       setNotifications((prev) =>
         prev.map((item) => (item.status === "unread" ? { ...item, status: "read", read_at: new Date().toISOString() } : item)),
       );
+      setInfo(`${unreadIds.length} Notifications wurden als gelesen markiert.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Bulk-Markierung fehlgeschlagen.");
     } finally {
@@ -119,17 +131,27 @@ export default function NotificationsPage() {
           <Button type="button" onClick={onMarkAllVisibleUnread} disabled={actionLoading || unreadCount === 0}>
             Alle sichtbaren Ungelesenen als gelesen markieren
           </Button>
+          <Button type="button" variant="outline" onClick={() => void loadNotifications()} disabled={loading || actionLoading}>
+            Liste aktualisieren
+          </Button>
         </div>
 
-        {loading && <p className="text-sm text-muted-foreground">Notifications werden geladen...</p>}
-        {error && <p className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
+        <div aria-live="polite" className="space-y-2">
+          {loading && (
+            <p className="rounded-md border border-border/60 bg-muted/30 p-3 text-sm text-muted-foreground">
+              Notifications werden geladen...
+            </p>
+          )}
+          {error && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
+          {info && <p className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{info}</p>}
+        </div>
 
         {!loading && notifications.length === 0 ? (
           <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
             Keine Notifications vorhanden.
           </p>
         ) : (
-          <ul className="space-y-3">
+          <ul aria-busy={loading || actionLoading} className="space-y-3">
             {notifications.map((item) => (
               <li key={item.id} className="rounded-lg border bg-card p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -140,6 +162,7 @@ export default function NotificationsPage() {
                     </p>
                   </div>
                   <span
+                    aria-label={`Status ${item.status}`}
                     className={`rounded px-2 py-1 text-xs font-medium ${
                       item.status === "unread"
                         ? "bg-amber-100 text-amber-800"

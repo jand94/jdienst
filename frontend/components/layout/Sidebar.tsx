@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, Star } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useAuth } from "@/hooks/use-auth";
+import { listNotifications } from "@/lib/notifications/notification-api";
 import { flattenVisibleNavigationItems, getVisibleNavigationItems } from "@/lib/navigation/navigation-policy";
 import { getNavigationIcon } from "@/lib/navigation/icons";
 import { getNavigationGroupColors } from "@/lib/navigation/group-colors";
@@ -20,6 +21,38 @@ function NavigationList({ compact = false }: { compact?: boolean }) {
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({
     "/settings": true,
   });
+  const [notificationUnreadCount, setNotificationUnreadCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (auth.status !== "authenticated") {
+      return () => {
+        active = false;
+      };
+    }
+    const loadUnreadCount = async () => {
+      try {
+        const notifications = await listNotifications(auth.tenantSlug);
+        if (!active) {
+          return;
+        }
+        const unread = notifications.filter((item) => item.status === "unread").length;
+        setNotificationUnreadCount(unread);
+      } catch {
+        if (active) {
+          setNotificationUnreadCount(null);
+        }
+      }
+    };
+    void loadUnreadCount();
+    const interval = window.setInterval(() => {
+      void loadUnreadCount();
+    }, 60000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [auth.status, auth.tenantSlug, pathname]);
 
   const isActiveLink = (href: string) =>
     href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
@@ -45,6 +78,7 @@ function NavigationList({ compact = false }: { compact?: boolean }) {
     const isFavorite = favoriteSet.has(href);
     const NavIcon = getNavigationIcon(iconKey);
     const colorClasses = getNavigationGroupColors(group);
+    const showNotificationBadge = href === "/notifications" && (notificationUnreadCount ?? 0) > 0 && !isCollapsed;
 
     return (
       <div
@@ -68,7 +102,17 @@ function NavigationList({ compact = false }: { compact?: boolean }) {
           <NavIcon className={cn("h-4 w-4 shrink-0", colorClasses.icon)} />
           {!isCollapsed && (
             <span>
-              <span className="font-medium">{label}</span>
+              <span className="inline-flex items-center gap-2 font-medium">
+                {label}
+                {showNotificationBadge && (
+                  <span
+                    aria-label={`${notificationUnreadCount} ungelesene Notifications`}
+                    className="inline-flex min-w-5 items-center justify-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800"
+                  >
+                    {notificationUnreadCount}
+                  </span>
+                )}
+              </span>
               <p className="text-xs text-muted-foreground">{description}</p>
             </span>
           )}

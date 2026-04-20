@@ -18,6 +18,8 @@ class PlatformHealthResponseSerializer(serializers.Serializer):
     audit = serializers.JSONField()
     idempotency = serializers.JSONField()
     outbox = serializers.JSONField()
+    tenant = serializers.JSONField()
+    notification = serializers.JSONField(required=False, allow_null=True)
 
 
 class PlatformCheckResponseSerializer(serializers.Serializer):
@@ -30,4 +32,5 @@ class PlatformSloReportResponseSerializer(serializers.Serializer):
     window_hours = serializers.IntegerField()
     check_passed = serializers.BooleanField()
     idempotency_cleaned_records = serializers.IntegerField()
+    soft_deleted_tenants_cleaned = serializers.IntegerField()
     check_summary = serializers.ListField(child=serializers.JSONField())

@@ -40,6 +40,7 @@ def test_create_notification_creates_delivery_and_audit_event(user, tenant, monk
     assert len(events) == 1
     assert events[0]["action"] == "notification.created"
     assert events[0]["metadata"]["source"] == "api"
+    assert events[0]["metadata"]["classification"] == "security_notification_mutation"
 
 
 @pytest.mark.django_db
@@ -83,3 +84,4 @@ def test_mark_notifications_as_read_bulk_updates_unread_records(user, tenant, mo
     assert Notification.objects.filter(status=Notification.STATUS_READ).count() == 2
     assert events[0]["action"] == "notification.bulk_read"
     assert events[0]["metadata"]["source"] == "api"
+    assert events[0]["metadata"]["classification"] == "security_state_change"

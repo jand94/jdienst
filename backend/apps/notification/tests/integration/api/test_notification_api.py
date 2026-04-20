@@ -1,7 +1,10 @@
 import pytest
+from django.contrib.auth import get_user_model
 from rest_framework import status
 
 from apps.notification.models import Notification, NotificationType, UserNotificationPreference
+
+User = get_user_model()
 
 
 @pytest.mark.django_db
@@ -57,6 +60,43 @@ def test_staff_can_create_notification(api_client, staff_user, user, tenant, sta
 
 
 @pytest.mark.django_db
+def test_notification_create_returns_mapped_error_for_non_member_recipient(
+    api_client,
+    staff_user,
+    tenant,
+    staff_tenant_membership,
+):
+    external_user = User.objects.create_user(
+        email="external-notification@example.com",
+        username="external_notification",
+        password="pw123456!",
+    )
+    NotificationType.objects.create(
+        key="quota-warning-external",
+        title="Quota Warning External",
+        default_channels=[UserNotificationPreference.CHANNEL_IN_APP],
+    )
+    api_client.force_authenticate(user=staff_user)
+
+    response = api_client.post(
+        "/api/notification/v1/notifications/",
+        {
+            "recipient_id": str(external_user.pk),
+            "notification_type_key": "quota-warning-external",
+            "title": "Quota",
+            "body": "Bitte aufraeumen.",
+            "channels": [UserNotificationPreference.CHANNEL_IN_APP],
+        },
+        format="json",
+        HTTP_X_TENANT_SLUG=tenant.slug,
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "error" in response.data
+    assert response.data["error"]["code"] == "invalid"
+
+
+@pytest.mark.django_db
 def test_user_can_mark_notification_as_read(api_client, user, tenant, tenant_membership):
     notification_type = NotificationType.objects.create(
         key="release-ready",
@@ -105,3 +145,83 @@ def test_user_can_subscribe_or_unsubscribe_preference(api_client, user, tenant, 
 
     assert response.status_code == status.HTTP_201_CREATED
     assert response.data["is_subscribed"] is False
+
+
+@pytest.mark.django_db
+def test_staff_can_read_notification_health_snapshot(api_client, staff_user, tenant, staff_tenant_membership):
+    api_client.force_authenticate(user=staff_user)
+
+    response = api_client.get(
+        "/api/notification/v1/ops/health-snapshot/",
+        HTTP_X_TENANT_SLUG=tenant.slug,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert "delivery" in response.data
+    assert "digest" in response.data
+
+
+@pytest.mark.django_db
+def test_non_staff_cannot_read_notification_health_snapshot(api_client, user, tenant, tenant_membership):
+    api_client.force_authenticate(user=user)
+
+    response = api_client.get(
+        "/api/notification/v1/ops/health-snapshot/",
+        HTTP_X_TENANT_SLUG=tenant.slug,
+    )
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+def test_notification_create_is_throttled(
+    api_client,
+    staff_user,
+    user,
+    tenant,
+    staff_tenant_membership,
+    tenant_membership,
+    settings,
+):
+    settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["notification_create"] = "1/minute"
+    NotificationType.objects.create(
+        key="throttle-create",
+        title="Throttle Create",
+        default_channels=[UserNotificationPreference.CHANNEL_IN_APP],
+    )
+    api_client.force_authenticate(user=staff_user)
+    payload = {
+        "recipient_id": str(user.pk),
+        "notification_type_key": "throttle-create",
+        "title": "A",
+        "body": "A",
+        "channels": [UserNotificationPreference.CHANNEL_IN_APP],
+    }
+
+    first = api_client.post("/api/notification/v1/notifications/", payload, format="json", HTTP_X_TENANT_SLUG=tenant.slug)
+    second = api_client.post("/api/notification/v1/notifications/", payload, format="json", HTTP_X_TENANT_SLUG=tenant.slug)
+
+    assert first.status_code == status.HTTP_201_CREATED
+    assert second.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+
+
+@pytest.mark.django_db
+def test_notification_preference_update_is_throttled(api_client, user, tenant, tenant_membership, settings):
+    settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["notification_preference_update"] = "1/minute"
+    NotificationType.objects.create(
+        key="throttle-preference",
+        title="Throttle Preference",
+        default_channels=[UserNotificationPreference.CHANNEL_DIGEST],
+    )
+    api_client.force_authenticate(user=user)
+    payload = {
+        "notification_type_key": "throttle-preference",
+        "channel": UserNotificationPreference.CHANNEL_DIGEST,
+        "is_subscribed": False,
+    }
+
+    first = api_client.post("/api/notification/v1/preferences/", payload, format="json", HTTP_X_TENANT_SLUG=tenant.slug)
+    second = api_client.post("/api/notification/v1/preferences/", payload, format="json", HTTP_X_TENANT_SLUG=tenant.slug)
+
+    assert first.status_code == status.HTTP_201_CREATED
+    assert second.status_code == status.HTTP_429_TOO_MANY_REQUESTS

@@ -62,6 +62,13 @@ def _resolve_duration_seconds(terminal_reporter) -> float:
     return max(0.0, time.time() - _MODULE_START_TS)
 
 
+def _smtp_transport_summary() -> str:
+    return (
+        f"backend=smtp host={settings.EMAIL_HOST} port={settings.EMAIL_PORT} "
+        f"tls={settings.EMAIL_USE_TLS} ssl={settings.EMAIL_USE_SSL} timeout={settings.EMAIL_TIMEOUT}"
+    )
+
+
 @pytest.mark.django_db
 def test_send_test_results_email(request):
     if not getattr(settings, "TEST_RESULTS_EMAIL_ENABLED", False):
@@ -134,12 +141,20 @@ def test_send_test_results_email(request):
         use_ssl=settings.EMAIL_USE_SSL,
         timeout=settings.EMAIL_TIMEOUT,
     )
-    sent_count = send_mail(
-        subject=subject,
-        message=body,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=recipients,
-        fail_silently=False,
-        connection=smtp_connection,
-    )
+    try:
+        sent_count = send_mail(
+            subject=subject,
+            message=body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=recipients,
+            fail_silently=False,
+            connection=smtp_connection,
+        )
+    except Exception as exc:  # noqa: BLE001
+        pytest.fail(
+            "Transport failure while sending pytest summary email. "
+            f"diagnostic={_smtp_transport_summary()} "
+            f"recipients={','.join(recipients)} "
+            f"error={type(exc).__name__}: {exc}"
+        )
     assert sent_count >= 1

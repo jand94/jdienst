@@ -209,7 +209,9 @@ REST_FRAMEWORK = {
         "auth_logout": os.getenv("AUTH_LOGOUT_RATE", "60/hour"),
         "notification_create": os.getenv("NOTIFICATION_CREATE_RATE", "120/hour"),
         "notification_mark_read": os.getenv("NOTIFICATION_MARK_READ_RATE", "240/hour"),
+        "notification_bulk_mark_read": os.getenv("NOTIFICATION_BULK_MARK_READ_RATE", "60/hour"),
         "notification_preference_update": os.getenv("NOTIFICATION_PREFERENCE_UPDATE_RATE", "120/hour"),
+        "notification_ops_snapshot": os.getenv("NOTIFICATION_OPS_SNAPSHOT_RATE", "120/hour"),
     },
     "EXCEPTION_HANDLER": "apps.common.api.v1.services.error_mapping_service.api_exception_handler",
 }
@@ -331,3 +333,11 @@ CHANNEL_LAYERS = {
 }
 
 NOTIFICATION_DIGEST_WINDOW_MINUTES = _env_int("NOTIFICATION_DIGEST_WINDOW_MINUTES", 60)
+NOTIFICATION_DISPATCH_ON_CREATE = _env_bool("NOTIFICATION_DISPATCH_ON_CREATE", default=False)
+NOTIFICATION_MAX_DELIVERY_ATTEMPTS = _env_int("NOTIFICATION_MAX_DELIVERY_ATTEMPTS", 5)
+NOTIFICATION_RETRY_BASE_SECONDS = _env_int("NOTIFICATION_RETRY_BASE_SECONDS", 60)
+NOTIFICATION_HEALTH_MAX_PENDING_DELIVERIES = _env_int("NOTIFICATION_HEALTH_MAX_PENDING_DELIVERIES", 1000)
+NOTIFICATION_HEALTH_MAX_OLDEST_PENDING_AGE_SECONDS = _env_int(
+    "NOTIFICATION_HEALTH_MAX_OLDEST_PENDING_AGE_SECONDS",
+    900,
+)

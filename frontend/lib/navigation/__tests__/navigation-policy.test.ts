@@ -19,7 +19,7 @@ describe("navigation-policy", () => {
         permissions.includes("dashboard.view") || permissions.includes("audit.events.read"),
     });
 
-    expect(visibleItems.map((item) => item.href)).toEqual(["/", "/audit"]);
+    expect(visibleItems.map((item) => item.href)).toEqual(["/", "/notifications", "/audit"]);
   });
 
   it("includes visible child routes for settings dropdown", () => {

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
 from apps.common.api.v1.services import record_audit_event
 from apps.common.models import Tenant
+from apps.notification.api.v1.services.notification_observability_service import log_pipeline_event
 from apps.notification.api.v1.services.notification_preference_service import resolve_effective_channels
 from apps.notification.models import Notification, NotificationDelivery, NotificationType
 
@@ -43,6 +45,15 @@ def create_notification(
 ) -> Notification:
     notification_type = NotificationType.objects.get(key=notification_type_key, is_active=True)
     metadata_payload = dict(metadata or {})
+    log_pipeline_event(
+        event="notification.create.requested",
+        request_id=request_id,
+        trace_id=trace_id,
+        tenant_id=str(tenant.pk),
+        actor_id=str(actor.pk),
+        recipient_id=str(recipient.pk),
+        notification_type_key=notification_type_key,
+    )
     with transaction.atomic():
         notification = Notification.objects.create(
             tenant=tenant,
@@ -78,13 +89,32 @@ def create_notification(
             actor=actor,
             metadata={
                 "source": "api",
+                "classification": "security_notification_mutation",
                 "recipient_id": str(recipient.pk),
+                "actor_id": str(actor.pk),
+                "tenant_id": str(tenant.pk),
                 "notification_type_key": notification_type.key,
                 "channels": effective_channels,
             },
             request_id=request_id,
             trace_id=trace_id,
         )
+        if getattr(settings, "NOTIFICATION_DISPATCH_ON_CREATE", False):
+            def _dispatch_delivery_job() -> None:
+                from apps.notification.tasks.notification_tasks import run_notification_delivery_dispatch
+
+                run_notification_delivery_dispatch.delay()
+
+            transaction.on_commit(_dispatch_delivery_job)
+    log_pipeline_event(
+        event="notification.create.completed",
+        request_id=request_id,
+        trace_id=trace_id,
+        notification_id=str(notification.pk),
+        tenant_id=str(tenant.pk),
+        recipient_id=str(recipient.pk),
+        delivery_channels=effective_channels,
+    )
     return notification
 
 
@@ -108,9 +138,20 @@ def mark_notification_as_read(
         target_model="notification.Notification",
         target_id=str(notification.pk),
         actor=actor,
-        metadata={"source": "api"},
+        metadata={
+            "source": "api",
+            "classification": "security_state_change",
+        },
         request_id=request_id,
         trace_id=trace_id,
+    )
+    log_pipeline_event(
+        event="notification.read.completed",
+        request_id=request_id,
+        trace_id=trace_id,
+        notification_id=str(notification.pk),
+        tenant_id=str(tenant.pk),
+        actor_id=str(actor.pk),
     )
     return notification
 
@@ -139,8 +180,20 @@ def mark_notifications_as_read_bulk(
         target_model="notification.Notification",
         target_id=str(actor.pk),
         actor=actor,
-        metadata={"source": "api", "count": len(affected_ids)},
+        metadata={
+            "source": "api",
+            "classification": "security_state_change",
+            "count": len(affected_ids),
+        },
         request_id=request_id,
         trace_id=trace_id,
+    )
+    log_pipeline_event(
+        event="notification.bulk_read.completed",
+        request_id=request_id,
+        trace_id=trace_id,
+        tenant_id=str(tenant.pk),
+        actor_id=str(actor.pk),
+        count=len(affected_ids),
     )
     return len(affected_ids)
