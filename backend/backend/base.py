@@ -220,6 +220,35 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "jdienst API",
     "DESCRIPTION": "OpenAPI schema for the jdienst backend.",
     "VERSION": "1.0.0",
+    "ENUM_NAME_OVERRIDES": {
+        "NotificationChannelEnum": [
+            ("in_app", "In-App"),
+            ("email", "Email"),
+            ("realtime", "Realtime"),
+            ("digest", "Digest"),
+        ],
+        "NotificationStatusEnum": [
+            ("unread", "Unread"),
+            ("read", "Read"),
+            ("archived", "Archived"),
+        ],
+        "NotificationDeliveryStatusEnum": [
+            ("pending", "Pending"),
+            ("sent", "Sent"),
+            ("failed", "Failed"),
+            ("skipped", "Skipped"),
+        ],
+        "NotificationDigestStatusEnum": [
+            ("pending", "Pending"),
+            ("sent", "Sent"),
+            ("failed", "Failed"),
+        ],
+        "TenantStatusEnum": [
+            ("active", "Active"),
+            ("suspended", "Suspended"),
+            ("archived", "Archived"),
+        ],
+    },
     "APPEND_COMPONENTS": {
         "securitySchemes": {
             "BearerAuth": {

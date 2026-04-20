@@ -37,13 +37,14 @@ from apps.notification.api.v1.services import (
     set_user_preference,
     collect_notification_health_snapshot,
 )
-from apps.notification.models import Notification, NotificationType
+from apps.notification.models import Notification, NotificationType, UserNotificationPreference
 
 User = get_user_model()
 
 
 @notification_viewset_schema
 class NotificationViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSet):
+    queryset = Notification.objects.none()
     serializer_class = NotificationReadSerializer
     throttle_classes = [ScopedRateThrottle]
 
@@ -64,6 +65,8 @@ class NotificationViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, Generi
         return super().get_throttles()
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return self.queryset
         tenant = require_tenant(self.request)
         ensure_user_in_tenant(user=self.request.user, tenant=tenant)
         include_archived = self.request.query_params.get("include_archived", "").lower() in {"1", "true", "yes"}
@@ -139,6 +142,7 @@ class NotificationViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, Generi
 
 @notification_preference_viewset_schema
 class NotificationPreferenceViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSet):
+    queryset = UserNotificationPreference.objects.none()
     serializer_class = NotificationPreferenceReadSerializer
     permission_classes = [IsAuthenticated]
     throttle_classes = [ScopedRateThrottle]
@@ -148,6 +152,8 @@ class NotificationPreferenceViewSet(mixins.ListModelMixin, mixins.CreateModelMix
         return super().get_throttles()
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return self.queryset
         tenant = require_tenant(self.request)
         ensure_user_in_tenant(user=self.request.user, tenant=tenant)
         return list_user_preferences(user=self.request.user)
