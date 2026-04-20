@@ -1,5 +1,6 @@
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from rest_framework import status
 
 from apps.notification.models import Notification, NotificationType, UserNotificationPreference
@@ -183,6 +184,7 @@ def test_notification_create_is_throttled(
     tenant_membership,
     settings,
 ):
+    cache.clear()
     settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["notification_create"] = "1/minute"
     NotificationType.objects.create(
         key="throttle-create",
@@ -207,6 +209,7 @@ def test_notification_create_is_throttled(
 
 @pytest.mark.django_db
 def test_notification_preference_update_is_throttled(api_client, user, tenant, tenant_membership, settings):
+    cache.clear()
     settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["notification_preference_update"] = "1/minute"
     NotificationType.objects.create(
         key="throttle-preference",

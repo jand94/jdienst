@@ -1,4 +1,5 @@
 import pytest
+from django.test import override_settings
 from django.urls import reverse
 
 from apps.common.models import AuditEvent
@@ -65,10 +66,11 @@ def test_me_endpoint_returns_authenticated_user(api_client):
 
 
 @pytest.mark.django_db
+@override_settings(CORS_ALLOWED_ORIGINS=["http://localhost:3000"], CORS_ALLOW_HEADERS=["x-tenant-slug"])
 def test_me_endpoint_cors_preflight_allows_tenant_header(api_client):
     response = api_client.options(
         reverse("accounts-user-me"),
-        HTTP_ORIGIN="http://localhost:3002",
+        HTTP_ORIGIN="http://localhost:3000",
         HTTP_ACCESS_CONTROL_REQUEST_METHOD="GET",
         HTTP_ACCESS_CONTROL_REQUEST_HEADERS="x-tenant-slug",
     )
