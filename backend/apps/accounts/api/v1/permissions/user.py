@@ -1,6 +1,6 @@
 from rest_framework.permissions import BasePermission
 
-from apps.accounts.api.v1.services import log_permission_denied
+from apps.common.api.v1.services import log_permission_denied
 
 
 class IsSelfOrStaff(BasePermission):

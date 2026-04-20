@@ -1,7 +1,6 @@
 from rest_framework.permissions import BasePermission
 
-from apps.accounts.api.v1.services import log_permission_denied
-from apps.common.api.v1.services import extract_audit_correlation_ids, is_audit_operator
+from apps.common.api.v1.services import extract_audit_correlation_ids, is_audit_operator, log_permission_denied
 
 
 class IsAuditOperator(BasePermission):

@@ -88,25 +88,60 @@ def dispatch_pending_outbox_events(*, batch_size: int = DEFAULT_OUTBOX_BATCH_SIZ
     }
 
 
+def requeue_failed_outbox_events(*, limit: int = 100, topic: str = "") -> dict[str, int]:
+    now = timezone.now()
+    queryset = OutboxEvent.objects.filter(status=OutboxEvent.STATUS_FAILED)
+    if topic.strip():
+        queryset = queryset.filter(topic=topic.strip())
+    event_ids = list(queryset.order_by("updated_at").values_list("id", flat=True)[:limit])
+    if not event_ids:
+        return {"selected": 0, "requeued": 0}
+
+    updated = OutboxEvent.objects.filter(id__in=event_ids).update(
+        status=OutboxEvent.STATUS_PENDING,
+        next_attempt_at=now,
+        updated_at=now,
+    )
+    return {
+        "selected": len(event_ids),
+        "requeued": int(updated),
+    }
+
+
 def collect_outbox_health_snapshot() -> dict[str, Any]:
     now = timezone.now()
     aggregated = OutboxEvent.objects.aggregate(
         pending_total=Count("id", filter=Q(status=OutboxEvent.STATUS_PENDING)),
         failed_total=Count("id", filter=Q(status=OutboxEvent.STATUS_FAILED)),
         sent_total=Count("id", filter=Q(status=OutboxEvent.STATUS_SENT)),
+        next_retry_due_total=Count(
+            "id",
+            filter=Q(status=OutboxEvent.STATUS_PENDING, next_attempt_at__lte=now),
+        ),
         oldest_pending_at=Min(
             "created_at",
             filter=Q(status=OutboxEvent.STATUS_PENDING),
         ),
+        oldest_failed_at=Min(
+            "created_at",
+            filter=Q(status=OutboxEvent.STATUS_FAILED),
+        ),
     )
     oldest_pending_at = aggregated["oldest_pending_at"]
+    oldest_failed_at = aggregated["oldest_failed_at"]
     oldest_pending_age_seconds = 0
+    oldest_failed_age_seconds = 0
     if oldest_pending_at is not None:
         oldest_pending_age_seconds = int((now - oldest_pending_at).total_seconds())
+    if oldest_failed_at is not None:
+        oldest_failed_age_seconds = int((now - oldest_failed_at).total_seconds())
 
     return {
         "pending_total": aggregated["pending_total"] or 0,
         "failed_total": aggregated["failed_total"] or 0,
+        "dead_letter_total": aggregated["failed_total"] or 0,
         "sent_total": aggregated["sent_total"] or 0,
+        "next_retry_due_total": aggregated["next_retry_due_total"] or 0,
         "oldest_pending_age_seconds": oldest_pending_age_seconds,
+        "oldest_failed_age_seconds": oldest_failed_age_seconds,
     }

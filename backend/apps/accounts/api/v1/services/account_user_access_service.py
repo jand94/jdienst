@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 from apps.accounts.models import User
-from apps.common.api.v1.services import is_audit_operator, is_audit_reader
+from apps.common.api.v1.services import (
+    is_audit_operator,
+    is_audit_reader,
+    resolve_role_feature_flags,
+    resolve_role_permissions,
+)
 from apps.common.models import Tenant, TenantMembership
 
 _BASE_PERMISSIONS = {
@@ -11,12 +16,6 @@ _BASE_PERMISSIONS = {
     "accounts.self.read",
     "accounts.self.update",
     "accounts.tenants.read",
-}
-
-_TENANT_ROLE_PERMISSIONS: dict[str, set[str]] = {
-    TenantMembership.ROLE_MEMBER: set(),
-    TenantMembership.ROLE_ADMIN: {"tenant.members.manage"},
-    TenantMembership.ROLE_OWNER: {"tenant.members.manage", "tenant.settings.manage"},
 }
 
 _STAFF_EXTRA_PERMISSIONS = {
@@ -45,8 +44,7 @@ def _resolve_membership_role(*, user: User, tenant: Tenant) -> str | None:
 def resolve_user_access_context(*, user: User, tenant: Tenant) -> dict[str, list[str] | str | None]:
     current_tenant_role = _resolve_membership_role(user=user, tenant=tenant)
     permissions = set(_BASE_PERMISSIONS)
-    if current_tenant_role:
-        permissions.update(_TENANT_ROLE_PERMISSIONS.get(current_tenant_role, set()))
+    permissions.update(resolve_role_permissions(role=current_tenant_role, tenant=tenant))
     if user.is_staff:
         permissions.update(_STAFF_EXTRA_PERMISSIONS)
     if is_audit_reader(user):
@@ -55,6 +53,7 @@ def resolve_user_access_context(*, user: User, tenant: Tenant) -> dict[str, list
         permissions.add(_AUDIT_OPERATOR_PERMISSION)
 
     feature_flags = {_FEATURE_FLAG_DYNAMIC_AUTHZ}
+    feature_flags.update(resolve_role_feature_flags(role=current_tenant_role, tenant=tenant))
     if _AUDIT_OPERATOR_PERMISSION in permissions:
         feature_flags.add(_FEATURE_FLAG_AUDIT_OPS)
 

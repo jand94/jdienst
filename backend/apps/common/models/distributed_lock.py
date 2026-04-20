@@ -7,6 +7,7 @@ class DistributedLock(TimeStampedModel):
     key = models.CharField(max_length=128, unique=True)
     owner = models.CharField(max_length=128)
     token = models.CharField(max_length=128)
+    fencing_counter = models.BigIntegerField(default=0)
     expires_at = models.DateTimeField(db_index=True)
 
     class Meta:

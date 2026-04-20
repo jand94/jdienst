@@ -4,6 +4,7 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, OpenApiType
 from rest_framework import serializers
 
 from apps.common.api.v1.serializers import ApiErrorResponseSerializer
+from apps.common.api.v1.schema import tenant_slug_header_parameter
 from apps.notification.api.v1.serializers import (
     NotificationBulkArchiveSerializer,
     NotificationBulkMarkReadSerializer,
@@ -42,10 +43,7 @@ notification_viewset_schema = extend_schema_view(
                 required=False,
                 description="Include archived notifications when true.",
             ),
-            OpenApiParameter(
-                name="X-Tenant-Slug",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.HEADER,
+            tenant_slug_header_parameter(
                 required=True,
                 description="Tenant scope for notification queries.",
             ),
@@ -228,10 +226,7 @@ notification_ops_snapshot_schema = extend_schema(
             required=False,
             description="Observation window for success/failure rate calculations.",
         ),
-        OpenApiParameter(
-            name="X-Tenant-Slug",
-            type=OpenApiTypes.STR,
-            location=OpenApiParameter.HEADER,
+        tenant_slug_header_parameter(
             required=False,
             description="Optional tenant context for operator auditing.",
         ),

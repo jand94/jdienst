@@ -29,15 +29,29 @@ def cleanup_soft_deleted_tenants(*, older_than_days: int = 30) -> int:
     return deleted_count
 
 
-def collect_platform_health_snapshot(*, window_hours: int = 24) -> dict:
-    audit_snapshot = collect_audit_health_snapshot(window_hours=window_hours)
-    notification_snapshot = None
+def _collect_notification_snapshot(*, window_hours: int) -> dict | None:
     try:
         from apps.notification.api.v1.services.notification_health_service import collect_notification_health_snapshot
 
-        notification_snapshot = collect_notification_health_snapshot(window_hours=window_hours)
-    except Exception:  # noqa: BLE001
-        notification_snapshot = None
+        snapshot = collect_notification_health_snapshot(window_hours=window_hours)
+        return {
+            "status": "ok",
+            "details": snapshot,
+            "error_class": "",
+            "error_message": "",
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "status": "degraded",
+            "details": {},
+            "error_class": exc.__class__.__name__,
+            "error_message": str(exc),
+        }
+
+
+def collect_platform_health_snapshot(*, window_hours: int = 24) -> dict:
+    audit_snapshot = collect_audit_health_snapshot(window_hours=window_hours)
+    notification_snapshot = _collect_notification_snapshot(window_hours=window_hours)
     return {
         "window_hours": window_hours,
         "audit": audit_snapshot,
@@ -82,6 +96,22 @@ def run_platform_check(*, window_hours: int = 24) -> dict:
     )
     checks.append(
         {
+            "name": "outbox_dead_letter_limit",
+            "passed": outbox["failed_total"] <= settings_values.max_outbox_failed,
+            "details": outbox,
+        }
+    )
+    idempotency = snapshot["idempotency"]
+    checks.append(
+        {
+            "name": "idempotency_in_progress_age",
+            "passed": idempotency["oldest_in_progress_age_seconds"]
+            <= settings_values.max_idempotency_in_progress_age_seconds,
+            "details": idempotency,
+        }
+    )
+    checks.append(
+        {
             "name": "tenant_membership_consistency",
             "passed": tenant_snapshot["passed"],
             "details": tenant_snapshot,
@@ -102,7 +132,8 @@ def run_platform_check(*, window_hours: int = 24) -> dict:
         checks.append(
             {
                 "name": "notification_pipeline_health",
-                "passed": bool(notification_snapshot.get("passed", False)),
+                "passed": notification_snapshot.get("status") == "ok"
+                and bool(notification_snapshot.get("details", {}).get("passed", False)),
                 "details": notification_snapshot,
             }
         )

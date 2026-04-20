@@ -27,6 +27,7 @@ def test_platform_health_returns_snapshot_for_operator(api_client):
     assert "audit" in response.data
     assert "idempotency" in response.data
     assert "outbox" in response.data
+    assert "notification" in response.data
 
 
 @pytest.mark.django_db
@@ -44,6 +45,9 @@ def test_platform_ops_check_returns_result(api_client):
     assert response.status_code == 200
     assert "passed" in response.data
     assert "checks" in response.data
+    check_names = {item["name"] for item in response.data["checks"]}
+    assert "outbox_dead_letter_limit" in check_names
+    assert "idempotency_in_progress_age" in check_names
 
 
 @pytest.mark.django_db

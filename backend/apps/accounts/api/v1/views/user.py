@@ -1,7 +1,6 @@
 from rest_framework import mixins, status
 from rest_framework.decorators import action
-from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
-from rest_framework.pagination import PageNumberPagination
+from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
@@ -24,14 +23,10 @@ from apps.common.api.v1.services import (
     require_tenant,
     require_idempotency_key,
 )
+from apps.common.api.v1.pagination import DefaultListPagination
+from apps.common.api.v1.schema import idempotency_key_header_parameter, tenant_slug_header_parameter
 from apps.accounts.models import User
 from apps.common.models import TenantMembership
-
-
-class AccountUserPagination(PageNumberPagination):
-    page_size = 50
-    max_page_size = 200
-    page_size_query_param = "page_size"
 
 
 @account_user_viewset_schema
@@ -43,7 +38,7 @@ class AccountUserViewSet(
 ):
     queryset = User.objects.order_by("-date_joined", "-id")
     serializer_class = AccountUserReadSerializer
-    pagination_class = AccountUserPagination
+    pagination_class = DefaultListPagination
 
     def _serialize_user_with_access_context(self, *, user: User, tenant, request) -> dict:
         access_context = resolve_user_access_context(user=user, tenant=tenant)
@@ -149,13 +144,7 @@ class AccountUserViewSet(
         summary="Retrieve authenticated user profile",
         responses=AccountUserReadSerializer,
         parameters=[
-            OpenApiParameter(
-                name="X-Tenant-Slug",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.HEADER,
-                required=True,
-                description="Active tenant scope for the request.",
-            )
+            tenant_slug_header_parameter(required=True),
         ],
     )
     @extend_schema(
@@ -166,20 +155,8 @@ class AccountUserViewSet(
         request=AccountUserUpdateSerializer,
         responses=AccountUserReadSerializer,
         parameters=[
-            OpenApiParameter(
-                name="X-Tenant-Slug",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.HEADER,
-                required=True,
-                description="Active tenant scope for the request.",
-            ),
-            OpenApiParameter(
-                name="Idempotency-Key",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.HEADER,
-                required=True,
-                description="Idempotency key for mutation safety.",
-            )
+            tenant_slug_header_parameter(required=True),
+            idempotency_key_header_parameter(required=True),
         ],
     )
     @action(detail=False, methods=["get", "patch"], url_path="me")
@@ -281,20 +258,8 @@ class AccountUserViewSet(
         request=None,
         responses=AccountUserReadSerializer,
         parameters=[
-            OpenApiParameter(
-                name="X-Tenant-Slug",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.HEADER,
-                required=True,
-                description="Active tenant scope for the request.",
-            ),
-            OpenApiParameter(
-                name="Idempotency-Key",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.HEADER,
-                required=True,
-                description="Idempotency key for mutation safety.",
-            )
+            tenant_slug_header_parameter(required=True),
+            idempotency_key_header_parameter(required=True),
         ],
     )
     @action(detail=False, methods=["post"], url_path="me/deactivate")

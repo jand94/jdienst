@@ -74,6 +74,7 @@ gemäss den Engineering-Regeln implementiert werden.
 - Basisnutzung und Event-Konventionen: `docs/backend/common/audit-basics.md`
 - Schnittstellen-Referenz (Commands + API): `docs/backend/common/audit-interfaces.md`
 - Ist-vs-Soll Gap-Analyse: `docs/backend/common/audit-gap-analysis.md`
+- Plattform-Baseline inkl. Enterprise-Gaps: `docs/backend/common/platform-enterprise-baseline.md`
 - Coverage-Inventar kritischer Flows: `docs/backend/common/audit-coverage-inventory.md`
 - Enterprise-Zielarchitektur: `docs/backend/common/audit-architecture.md`
 - Security/Privacy-Standard fuer Auditdaten: `docs/backend/common/audit-security-privacy.md`

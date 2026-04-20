@@ -1,10 +1,11 @@
-from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema, extend_schema_view
+from drf_spectacular.utils import extend_schema, extend_schema_view
 
 from apps.accounts.api.v1.serializers import (
     AccountUserReadSerializer,
     AccountUserTenantMembershipSerializer,
     AccountUserUpdateSerializer,
 )
+from apps.common.api.v1.schema import idempotency_key_header_parameter, tenant_slug_header_parameter
 
 
 account_user_viewset_schema = extend_schema_view(
@@ -12,26 +13,14 @@ account_user_viewset_schema = extend_schema_view(
         tags=["Accounts - User"],
         summary="List users (staff only)",
         parameters=[
-            OpenApiParameter(
-                name="X-Tenant-Slug",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.HEADER,
-                required=True,
-                description="Active tenant scope for the request.",
-            )
+            tenant_slug_header_parameter(required=True)
         ],
     ),
     retrieve=extend_schema(
         tags=["Accounts - User"],
         summary="Retrieve user profile by id",
         parameters=[
-            OpenApiParameter(
-                name="X-Tenant-Slug",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.HEADER,
-                required=True,
-                description="Active tenant scope for the request.",
-            )
+            tenant_slug_header_parameter(required=True)
         ],
     ),
     update=extend_schema(
@@ -40,20 +29,8 @@ account_user_viewset_schema = extend_schema_view(
         request=AccountUserUpdateSerializer,
         responses=AccountUserReadSerializer,
         parameters=[
-            OpenApiParameter(
-                name="X-Tenant-Slug",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.HEADER,
-                required=True,
-                description="Active tenant scope for the request.",
-            ),
-            OpenApiParameter(
-                name="Idempotency-Key",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.HEADER,
-                required=True,
-                description="Idempotency key for mutation safety.",
-            )
+            tenant_slug_header_parameter(required=True),
+            idempotency_key_header_parameter(required=True),
         ],
     ),
     partial_update=extend_schema(
@@ -62,20 +39,8 @@ account_user_viewset_schema = extend_schema_view(
         request=AccountUserUpdateSerializer,
         responses=AccountUserReadSerializer,
         parameters=[
-            OpenApiParameter(
-                name="X-Tenant-Slug",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.HEADER,
-                required=True,
-                description="Active tenant scope for the request.",
-            ),
-            OpenApiParameter(
-                name="Idempotency-Key",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.HEADER,
-                required=True,
-                description="Idempotency key for mutation safety.",
-            )
+            tenant_slug_header_parameter(required=True),
+            idempotency_key_header_parameter(required=True),
         ],
     ),
     me_tenants=extend_schema(

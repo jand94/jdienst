@@ -4,6 +4,7 @@ from apps.common.api.v1.services.outbox_service import (
     collect_outbox_health_snapshot,
     dispatch_pending_outbox_events,
     enqueue_outbox_event,
+    requeue_failed_outbox_events,
 )
 from apps.common.models import OutboxEvent
 
@@ -44,3 +45,19 @@ def test_collect_outbox_health_snapshot_returns_expected_counts():
 
     assert snapshot["pending_total"] == 2
     assert snapshot["failed_total"] == 0
+    assert snapshot["dead_letter_total"] == 0
+    assert "next_retry_due_total" in snapshot
+    assert "oldest_failed_age_seconds" in snapshot
+
+
+@pytest.mark.django_db
+def test_requeue_failed_outbox_events_requeues_records():
+    failed = enqueue_outbox_event(topic="a", payload={})
+    OutboxEvent.objects.filter(pk=failed.pk).update(status=OutboxEvent.STATUS_FAILED, attempts=5)
+
+    result = requeue_failed_outbox_events(limit=10)
+
+    failed.refresh_from_db()
+    assert result["selected"] == 1
+    assert result["requeued"] == 1
+    assert failed.status == OutboxEvent.STATUS_PENDING

@@ -11,8 +11,10 @@ from apps.common.models import TenantMembership
 @dataclass(frozen=True)
 class PlatformSettings:
     max_outbox_pending: int
+    max_outbox_failed: int
     max_outbox_oldest_age_seconds: int
     max_audit_verification_age_hours: int
+    max_idempotency_in_progress_age_seconds: int
     outbox_max_attempts: int
     idempotency_retention_seconds: int
     tenant_header_required: bool
@@ -24,11 +26,15 @@ class PlatformSettings:
 def get_platform_settings() -> PlatformSettings:
     values = PlatformSettings(
         max_outbox_pending=int(getattr(settings, "COMMON_PLATFORM_MAX_OUTBOX_PENDING", 5000)),
+        max_outbox_failed=int(getattr(settings, "COMMON_PLATFORM_MAX_OUTBOX_FAILED", 1000)),
         max_outbox_oldest_age_seconds=int(
             getattr(settings, "COMMON_PLATFORM_MAX_OUTBOX_OLDEST_AGE_SECONDS", 900)
         ),
         max_audit_verification_age_hours=int(
             getattr(settings, "COMMON_PLATFORM_MAX_AUDIT_VERIFICATION_AGE_HOURS", 24)
+        ),
+        max_idempotency_in_progress_age_seconds=int(
+            getattr(settings, "COMMON_PLATFORM_MAX_IDEMPOTENCY_IN_PROGRESS_AGE_SECONDS", 900)
         ),
         outbox_max_attempts=int(getattr(settings, "COMMON_OUTBOX_MAX_ATTEMPTS", 10)),
         idempotency_retention_seconds=int(
@@ -45,6 +51,12 @@ def get_platform_settings() -> PlatformSettings:
     )
     if values.max_outbox_pending < 0 or values.max_outbox_oldest_age_seconds < 0:
         raise InfrastructureError("COMMON_PLATFORM_* values must be non-negative.")
+    if values.max_outbox_failed < 0:
+        raise InfrastructureError("COMMON_PLATFORM_MAX_OUTBOX_FAILED must be non-negative.")
+    if values.max_idempotency_in_progress_age_seconds < 0:
+        raise InfrastructureError(
+            "COMMON_PLATFORM_MAX_IDEMPOTENCY_IN_PROGRESS_AGE_SECONDS must be non-negative."
+        )
     if values.max_audit_verification_age_hours < 1:
         raise InfrastructureError("COMMON_PLATFORM_MAX_AUDIT_VERIFICATION_AGE_HOURS must be >= 1.")
     if values.outbox_max_attempts < 1:

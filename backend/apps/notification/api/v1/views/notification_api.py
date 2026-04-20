@@ -5,12 +5,12 @@ from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.viewsets import GenericViewSet
 
+from apps.common.api.v1.pagination import DefaultListPagination, DefaultStreamPagination
 from apps.common.api.v1.services import ensure_user_in_tenant, extract_audit_correlation_ids, require_tenant
 from apps.common.api.v1.serializers import PlatformHealthQuerySerializer
 from apps.common.models import TenantMembership
@@ -51,24 +51,12 @@ from apps.notification.models import Notification, NotificationType, UserNotific
 User = get_user_model()
 
 
-class NotificationPagination(PageNumberPagination):
-    page_size = 20
-    max_page_size = 100
-    page_size_query_param = "page_size"
-
-
-class NotificationPreferencePagination(PageNumberPagination):
-    page_size = 50
-    max_page_size = 200
-    page_size_query_param = "page_size"
-
-
 @notification_viewset_schema
 class NotificationViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSet):
     queryset = Notification.objects.none()
     serializer_class = NotificationReadSerializer
     throttle_classes = [ScopedRateThrottle]
-    pagination_class = NotificationPagination
+    pagination_class = DefaultStreamPagination
 
     def get_permissions(self):
         if self.action == "create":
@@ -218,7 +206,7 @@ class NotificationPreferenceViewSet(mixins.ListModelMixin, mixins.CreateModelMix
     serializer_class = NotificationPreferenceReadSerializer
     permission_classes = [IsAuthenticated]
     throttle_classes = [ScopedRateThrottle]
-    pagination_class = NotificationPreferencePagination
+    pagination_class = DefaultListPagination
 
     def get_throttles(self):
         self.throttle_scope = "notification_preference_update" if self.action in {"create"} else None

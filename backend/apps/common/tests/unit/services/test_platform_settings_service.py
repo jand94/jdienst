@@ -22,3 +22,9 @@ def test_platform_settings_validates_attempts():
 def test_platform_settings_validates_default_tenant_role():
     with pytest.raises(InfrastructureError):
         get_platform_settings()
+
+
+@override_settings(COMMON_PLATFORM_MAX_IDEMPOTENCY_IN_PROGRESS_AGE_SECONDS=-1)
+def test_platform_settings_validates_idempotency_age_threshold():
+    with pytest.raises(InfrastructureError):
+        get_platform_settings()

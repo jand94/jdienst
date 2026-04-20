@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
-from apps.common.api.v1.services import record_audit_event
+from apps.common.api.v1.services import record_audit_event, tenant_scoped_queryset
 from apps.common.models import Tenant
 from apps.notification.api.v1.services.notification_observability_service import log_pipeline_event
 from apps.notification.api.v1.services.notification_preference_service import resolve_effective_channels
@@ -20,10 +20,10 @@ def list_notifications_for_user(
     user: User,
     include_archived: bool = False,
 ):
-    queryset = Notification.objects.select_related("notification_type").filter(
+    queryset = tenant_scoped_queryset(
+        queryset=Notification.objects.select_related("notification_type"),
         tenant=tenant,
-        recipient=user,
-    )
+    ).filter(recipient=user)
     if not include_archived:
         queryset = queryset.exclude(status=Notification.STATUS_ARCHIVED)
     return queryset.order_by("-published_at")
@@ -166,10 +166,10 @@ def mark_notifications_as_read_bulk(
 ) -> int:
     notifications = Notification.objects.filter(
         pk__in=notification_ids,
-        tenant=tenant,
         recipient=actor,
         status=Notification.STATUS_UNREAD,
     )
+    notifications = tenant_scoped_queryset(queryset=notifications, tenant=tenant)
     affected_ids = list(notifications.values_list("id", flat=True))
     if not affected_ids:
         return 0
@@ -200,8 +200,10 @@ def mark_notifications_as_read_bulk(
 
 
 def unread_notification_count(*, tenant: Tenant, user: User) -> int:
-    return Notification.objects.filter(
+    return tenant_scoped_queryset(
+        queryset=Notification.objects.all(),
         tenant=tenant,
+    ).filter(
         recipient=user,
         status=Notification.STATUS_UNREAD,
     ).count()
@@ -256,9 +258,9 @@ def archive_notifications_bulk(
 ) -> int:
     notifications = Notification.objects.filter(
         pk__in=notification_ids,
-        tenant=tenant,
         recipient=actor,
     ).exclude(status=Notification.STATUS_ARCHIVED)
+    notifications = tenant_scoped_queryset(queryset=notifications, tenant=tenant)
     affected_ids = list(notifications.values_list("id", flat=True))
     if not affected_ids:
         return 0
