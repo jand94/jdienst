@@ -1,8 +1,11 @@
 import pytest
 
 from apps.notification.api.v1.services.notification_service import (
+    archive_notification,
+    archive_notifications_bulk,
     create_notification,
     mark_notifications_as_read_bulk,
+    unread_notification_count,
 )
 from apps.notification.models import Notification, NotificationDelivery, NotificationType, UserNotificationPreference
 
@@ -85,3 +88,81 @@ def test_mark_notifications_as_read_bulk_updates_unread_records(user, tenant, mo
     assert events[0]["action"] == "notification.bulk_read"
     assert events[0]["metadata"]["source"] == "api"
     assert events[0]["metadata"]["classification"] == "security_state_change"
+
+
+@pytest.mark.django_db
+def test_archive_notification_sets_status_and_writes_audit(user, tenant, monkeypatch):
+    notification_type = NotificationType.objects.create(
+        key="archive-item",
+        title="Archive Item",
+        default_channels=[UserNotificationPreference.CHANNEL_IN_APP],
+    )
+    notification = Notification.objects.create(
+        tenant=tenant,
+        notification_type=notification_type,
+        recipient=user,
+        title="Archivierbar",
+        body="Body",
+        status=Notification.STATUS_UNREAD,
+    )
+    events = []
+    monkeypatch.setattr(
+        "apps.notification.api.v1.services.notification_service.record_audit_event",
+        lambda **kwargs: events.append(kwargs),
+    )
+
+    updated = archive_notification(
+        tenant=tenant,
+        actor=user,
+        notification=notification,
+        request_id="req-archive",
+        trace_id="trace-archive",
+    )
+
+    assert updated.status == Notification.STATUS_ARCHIVED
+    assert updated.read_at is not None
+    assert events[0]["action"] == "notification.archived"
+    assert events[0]["metadata"]["classification"] == "security_state_change"
+
+
+@pytest.mark.django_db
+def test_archive_notifications_bulk_and_unread_count(user, tenant, monkeypatch):
+    notification_type = NotificationType.objects.create(
+        key="archive-bulk",
+        title="Archive Bulk",
+        default_channels=[UserNotificationPreference.CHANNEL_IN_APP],
+    )
+    first = Notification.objects.create(
+        tenant=tenant,
+        notification_type=notification_type,
+        recipient=user,
+        title="A",
+        body="A body",
+        status=Notification.STATUS_UNREAD,
+    )
+    second = Notification.objects.create(
+        tenant=tenant,
+        notification_type=notification_type,
+        recipient=user,
+        title="B",
+        body="B body",
+        status=Notification.STATUS_UNREAD,
+    )
+    events = []
+    monkeypatch.setattr(
+        "apps.notification.api.v1.services.notification_service.record_audit_event",
+        lambda **kwargs: events.append(kwargs),
+    )
+
+    updated = archive_notifications_bulk(
+        tenant=tenant,
+        actor=user,
+        notification_ids=[str(first.pk), str(second.pk)],
+        request_id="req-bulk-archive",
+        trace_id="trace-bulk-archive",
+    )
+
+    assert updated == 2
+    assert Notification.objects.filter(status=Notification.STATUS_ARCHIVED).count() == 2
+    assert unread_notification_count(tenant=tenant, user=user) == 0
+    assert events[0]["action"] == "notification.bulk_archived"

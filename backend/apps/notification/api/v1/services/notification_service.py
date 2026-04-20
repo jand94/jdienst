@@ -197,3 +197,92 @@ def mark_notifications_as_read_bulk(
         count=len(affected_ids),
     )
     return len(affected_ids)
+
+
+def unread_notification_count(*, tenant: Tenant, user: User) -> int:
+    return Notification.objects.filter(
+        tenant=tenant,
+        recipient=user,
+        status=Notification.STATUS_UNREAD,
+    ).count()
+
+
+def archive_notification(
+    *,
+    tenant: Tenant,
+    actor: User,
+    notification: Notification,
+    request_id: str | None,
+    trace_id: str | None,
+) -> Notification:
+    if notification.tenant_id != tenant.pk or notification.recipient_id != actor.pk:
+        raise Notification.DoesNotExist("Notification not found in tenant scope.")
+    if notification.status == Notification.STATUS_ARCHIVED:
+        return notification
+    now = timezone.now()
+    notification.status = Notification.STATUS_ARCHIVED
+    notification.read_at = notification.read_at or now
+    notification.save(update_fields=("status", "read_at", "updated_at"))
+    record_audit_event(
+        action="notification.archived",
+        target_model="notification.Notification",
+        target_id=str(notification.pk),
+        actor=actor,
+        metadata={
+            "source": "api",
+            "classification": "security_state_change",
+        },
+        request_id=request_id,
+        trace_id=trace_id,
+    )
+    log_pipeline_event(
+        event="notification.archive.completed",
+        request_id=request_id,
+        trace_id=trace_id,
+        notification_id=str(notification.pk),
+        tenant_id=str(tenant.pk),
+        actor_id=str(actor.pk),
+    )
+    return notification
+
+
+def archive_notifications_bulk(
+    *,
+    tenant: Tenant,
+    actor: User,
+    notification_ids: list[str],
+    request_id: str | None,
+    trace_id: str | None,
+) -> int:
+    notifications = Notification.objects.filter(
+        pk__in=notification_ids,
+        tenant=tenant,
+        recipient=actor,
+    ).exclude(status=Notification.STATUS_ARCHIVED)
+    affected_ids = list(notifications.values_list("id", flat=True))
+    if not affected_ids:
+        return 0
+    now = timezone.now()
+    notifications.update(status=Notification.STATUS_ARCHIVED, read_at=now, updated_at=now)
+    record_audit_event(
+        action="notification.bulk_archived",
+        target_model="notification.Notification",
+        target_id=str(actor.pk),
+        actor=actor,
+        metadata={
+            "source": "api",
+            "classification": "security_state_change",
+            "count": len(affected_ids),
+        },
+        request_id=request_id,
+        trace_id=trace_id,
+    )
+    log_pipeline_event(
+        event="notification.bulk_archive.completed",
+        request_id=request_id,
+        trace_id=trace_id,
+        tenant_id=str(tenant.pk),
+        actor_id=str(actor.pk),
+        count=len(affected_ids),
+    )
+    return len(affected_ids)

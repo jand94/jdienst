@@ -215,6 +215,7 @@ class AccountUserViewSet(
                         actor=request.user,
                         data=serializer.validated_data,
                         source="api",
+                        tenant=tenant,
                         request_id=request_id,
                         trace_id=trace_id,
                     ),
@@ -310,6 +311,7 @@ class AccountUserViewSet(
                     user=deactivate_user(
                         actor=request.user,
                         source="api",
+                        tenant=tenant,
                         request_id=request_id,
                         trace_id=trace_id,
                     ),
@@ -341,6 +343,7 @@ class AccountUserViewSet(
                         actor=target,
                         data=serializer.validated_data,
                         source="api",
+                        tenant=tenant,
                         request_id=request_id,
                         trace_id=trace_id,
                     )
@@ -370,6 +373,7 @@ class AccountUserViewSet(
                         actor=target,
                         data=serializer.validated_data,
                         source="api",
+                        tenant=tenant,
                         request_id=request_id,
                         trace_id=trace_id,
                     )

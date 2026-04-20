@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+import logging
+from uuid import uuid4
+
 from django.db import transaction
 
 from apps.accounts.models import User
@@ -8,6 +13,8 @@ from apps.common.api.v1.services import (
 )
 from apps.common.models import TenantMembership
 
+LOGGER = logging.getLogger(__name__)
+
 _PROFILE_UPDATE_FIELDS = ("first_name", "last_name", "email")
 
 
@@ -16,6 +23,7 @@ def update_user_profile(
     actor: User,
     data: dict,
     source: str,
+    tenant=None,
     request_id: str | None = None,
     trace_id: str | None = None,
 ) -> User:
@@ -58,6 +66,15 @@ def update_user_profile(
                     "source": source,
                 },
             )
+            if tenant is not None:
+                _schedule_profile_notification(
+                    tenant=tenant,
+                    actor=actor,
+                    changed_fields=sorted(changed_fields.keys()),
+                    source=source,
+                    request_id=request_id,
+                    trace_id=trace_id,
+                )
     return actor
 
 
@@ -66,6 +83,7 @@ def deactivate_user(
     actor: User,
     source: str,
     reason: str = "self-service",
+    tenant=None,
     request_id: str | None = None,
     trace_id: str | None = None,
 ) -> User:
@@ -97,7 +115,110 @@ def deactivate_user(
                 "source": source,
             },
         )
+        if tenant is not None:
+            _schedule_deactivation_notification(
+                tenant=tenant,
+                actor=actor,
+                reason=reason,
+                source=source,
+                request_id=request_id,
+                trace_id=trace_id,
+            )
     return actor
+
+
+def _schedule_profile_notification(
+    *,
+    tenant,
+    actor: User,
+    changed_fields: list[str],
+    source: str,
+    request_id: str | None,
+    trace_id: str | None,
+) -> None:
+    try:
+        from apps.notification.api.v1.services import create_notification
+        from apps.notification.models import NotificationType, UserNotificationPreference
+
+        notification_type, _ = NotificationType.objects.get_or_create(
+            key="accounts-profile-updated",
+            defaults={
+                "title": "Profil geaendert",
+                "description": "Hinweis auf geaenderte Profildaten.",
+                "default_channels": [
+                    UserNotificationPreference.CHANNEL_IN_APP,
+                    UserNotificationPreference.CHANNEL_EMAIL,
+                ],
+                "allow_user_opt_out": True,
+                "is_active": True,
+            },
+        )
+        create_notification(
+            tenant=tenant,
+            actor=actor,
+            recipient=actor,
+            notification_type_key=notification_type.key,
+            title="Dein Profil wurde aktualisiert",
+            body="Es wurden Profildaten geaendert. Pruefe die Aenderungen in den Einstellungen.",
+            metadata={
+                "source": source,
+                "changed_fields": changed_fields,
+                "classification": "account_profile_update",
+            },
+            dedup_key=f"accounts-profile-updated:{actor.pk}:{uuid4()}",
+            channels=None,
+            request_id=request_id,
+            trace_id=trace_id,
+        )
+    except Exception:  # noqa: BLE001
+        LOGGER.exception("Could not emit profile update notification for user_id=%s", actor.pk)
+
+
+def _schedule_deactivation_notification(
+    *,
+    tenant,
+    actor: User,
+    reason: str,
+    source: str,
+    request_id: str | None,
+    trace_id: str | None,
+) -> None:
+    try:
+        from apps.notification.api.v1.services import create_notification
+        from apps.notification.models import NotificationType, UserNotificationPreference
+
+        notification_type, _ = NotificationType.objects.get_or_create(
+            key="accounts-user-deactivated",
+            defaults={
+                "title": "Account deaktiviert",
+                "description": "Sicherheitsrelevante Information ueber eine Deaktivierung.",
+                "default_channels": [
+                    UserNotificationPreference.CHANNEL_IN_APP,
+                    UserNotificationPreference.CHANNEL_EMAIL,
+                ],
+                "allow_user_opt_out": False,
+                "is_active": True,
+            },
+        )
+        create_notification(
+            tenant=tenant,
+            actor=actor,
+            recipient=actor,
+            notification_type_key=notification_type.key,
+            title="Dein Account wurde deaktiviert",
+            body="Dein Benutzerkonto wurde deaktiviert. Wenn das unerwartet war, kontaktiere den Support.",
+            metadata={
+                "source": source,
+                "reason": reason,
+                "classification": "account_deactivation",
+            },
+            dedup_key=f"accounts-user-deactivated:{actor.pk}:{uuid4()}",
+            channels=None,
+            request_id=request_id,
+            trace_id=trace_id,
+        )
+    except Exception:  # noqa: BLE001
+        LOGGER.exception("Could not emit account deactivation notification for user_id=%s", actor.pk)
 
 
 def assign_user_to_tenant_membership(

@@ -6,7 +6,7 @@ import { ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, Star } from "
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/hooks/use-auth";
-import { listNotifications } from "@/lib/notifications/notification-api";
+import { getUnreadNotificationCount } from "@/lib/notifications/notification-api";
 import { flattenVisibleNavigationItems, getVisibleNavigationItems } from "@/lib/navigation/navigation-policy";
 import { getNavigationIcon } from "@/lib/navigation/icons";
 import { getNavigationGroupColors } from "@/lib/navigation/group-colors";
@@ -32,12 +32,10 @@ function NavigationList({ compact = false }: { compact?: boolean }) {
     }
     const loadUnreadCount = async () => {
       try {
-        const notifications = await listNotifications(auth.tenantSlug);
-        if (!active) {
-          return;
+        const payload = await getUnreadNotificationCount(auth.tenantSlug);
+        if (active) {
+          setNotificationUnreadCount(payload.unread_count);
         }
-        const unread = notifications.filter((item) => item.status === "unread").length;
-        setNotificationUnreadCount(unread);
       } catch {
         if (active) {
           setNotificationUnreadCount(null);

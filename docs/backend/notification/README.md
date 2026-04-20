@@ -17,6 +17,8 @@ Zentrales Benachrichtigungsmodul fuer Inbox, Mail, Realtime und Digest mit Audit
 
 - `make notification-health` fuer Pipeline-Snapshot
 - `make notification-dispatch` fuer sofortiges Abarbeiten faelliger Deliveries
+- `make notification-digest-build` und `make notification-digest-dispatch` fuer Digest-Rueckstau
+- `make notification-pipeline-recover` fuer kombinierten Recovery-Lauf
 - `make notification-seed-fixture TENANT_SLUG=<slug> USER_EMAIL=<mail>` fuer Diagnosedaten
 
 ## Runbook

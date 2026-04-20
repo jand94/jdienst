@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, OpenApiTypes, extend_schema, extend_schema_view
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, OpenApiTypes, extend_schema, extend_schema_view, inline_serializer
+from rest_framework import serializers
 
 from apps.common.api.v1.serializers import ApiErrorResponseSerializer
 from apps.notification.api.v1.serializers import (
+    NotificationBulkArchiveSerializer,
     NotificationBulkMarkReadSerializer,
     NotificationCreateSerializer,
     NotificationPreferenceReadSerializer,
@@ -18,7 +20,17 @@ notification_viewset_schema = extend_schema_view(
         tags=["Notification - Inbox"],
         summary="List authenticated user's notifications",
         responses={
-            200: OpenApiResponse(response=NotificationReadSerializer(many=True)),
+            200: OpenApiResponse(
+                response=inline_serializer(
+                    name="NotificationListPaginatedResponse",
+                    fields={
+                        "count": serializers.IntegerField(),
+                        "next": serializers.CharField(allow_null=True),
+                        "previous": serializers.CharField(allow_null=True),
+                        "results": NotificationReadSerializer(many=True),
+                    },
+                )
+            ),
             401: OpenApiResponse(response=ApiErrorResponseSerializer),
             403: OpenApiResponse(response=ApiErrorResponseSerializer),
         },
@@ -36,6 +48,20 @@ notification_viewset_schema = extend_schema_view(
                 location=OpenApiParameter.HEADER,
                 required=True,
                 description="Tenant scope for notification queries.",
+            ),
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Page number for paginated notifications.",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Page size for paginated notifications.",
             ),
         ],
     ),
@@ -88,16 +114,90 @@ notification_bulk_mark_read_schema = extend_schema(
 )
 
 
+notification_archive_schema = extend_schema(
+    operation_id="notification_v1_notifications_archive_create",
+    tags=["Notification - Inbox - State"],
+    summary="Archive one notification",
+    request=None,
+    responses={
+        200: OpenApiResponse(response=NotificationReadSerializer),
+        401: OpenApiResponse(response=ApiErrorResponseSerializer),
+        403: OpenApiResponse(response=ApiErrorResponseSerializer),
+        404: OpenApiResponse(response=ApiErrorResponseSerializer),
+        429: OpenApiResponse(response=ApiErrorResponseSerializer),
+    },
+)
+
+
+notification_bulk_archive_schema = extend_schema(
+    operation_id="notification_v1_notifications_bulk_archive_create",
+    tags=["Notification - Inbox - State"],
+    summary="Archive multiple notifications",
+    request=NotificationBulkArchiveSerializer,
+    responses={
+        200: OpenApiResponse(description="Bulk archive result payload."),
+        400: OpenApiResponse(response=ApiErrorResponseSerializer),
+        401: OpenApiResponse(response=ApiErrorResponseSerializer),
+        403: OpenApiResponse(response=ApiErrorResponseSerializer),
+        429: OpenApiResponse(response=ApiErrorResponseSerializer),
+    },
+)
+
+
+notification_unread_count_schema = extend_schema(
+    operation_id="notification_v1_notifications_unread_count_retrieve",
+    tags=["Notification - Inbox"],
+    summary="Return unread notification counter",
+    request=None,
+    responses={
+        200: OpenApiResponse(
+            response=inline_serializer(
+                name="NotificationUnreadCountResponse",
+                fields={"unread_count": serializers.IntegerField()},
+            )
+        ),
+        401: OpenApiResponse(response=ApiErrorResponseSerializer),
+        403: OpenApiResponse(response=ApiErrorResponseSerializer),
+    },
+)
+
+
 notification_preference_viewset_schema = extend_schema_view(
     list=extend_schema(
         operation_id="notification_v1_preferences_list",
         tags=["Notification - Preferences"],
         summary="List effective user notification preferences",
         responses={
-            200: OpenApiResponse(response=NotificationPreferenceReadSerializer(many=True)),
+            200: OpenApiResponse(
+                response=inline_serializer(
+                    name="NotificationPreferenceListPaginatedResponse",
+                    fields={
+                        "count": serializers.IntegerField(),
+                        "next": serializers.CharField(allow_null=True),
+                        "previous": serializers.CharField(allow_null=True),
+                        "results": NotificationPreferenceReadSerializer(many=True),
+                    },
+                )
+            ),
             401: OpenApiResponse(response=ApiErrorResponseSerializer),
             403: OpenApiResponse(response=ApiErrorResponseSerializer),
         },
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Page number for paginated preferences.",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Page size for paginated preferences.",
+            ),
+        ],
     ),
     create=extend_schema(
         operation_id="notification_v1_preferences_create",

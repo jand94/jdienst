@@ -3,14 +3,25 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-const { listNotificationsMock, bulkMarkNotificationsAsReadMock, markNotificationAsReadMock, listNotificationPreferencesMock, updateNotificationPreferenceMock } =
-  vi.hoisted(() => ({
-    listNotificationsMock: vi.fn(),
-    bulkMarkNotificationsAsReadMock: vi.fn(),
-    markNotificationAsReadMock: vi.fn(),
-    listNotificationPreferencesMock: vi.fn(),
-    updateNotificationPreferenceMock: vi.fn(),
-  }));
+const {
+  listNotificationsMock,
+  bulkMarkNotificationsAsReadMock,
+  markNotificationAsReadMock,
+  listNotificationPreferencesMock,
+  updateNotificationPreferenceMock,
+  getUnreadNotificationCountMock,
+  archiveNotificationMock,
+  bulkArchiveNotificationsMock,
+} = vi.hoisted(() => ({
+  listNotificationsMock: vi.fn(),
+  bulkMarkNotificationsAsReadMock: vi.fn(),
+  markNotificationAsReadMock: vi.fn(),
+  listNotificationPreferencesMock: vi.fn(),
+  updateNotificationPreferenceMock: vi.fn(),
+  getUnreadNotificationCountMock: vi.fn(),
+  archiveNotificationMock: vi.fn(),
+  bulkArchiveNotificationsMock: vi.fn(),
+}));
 
 vi.mock("@/components/auth/RequireAuth", () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -31,6 +42,13 @@ vi.mock("@/lib/notifications/notification-api", () => ({
   markNotificationAsRead: markNotificationAsReadMock,
   listNotificationPreferences: listNotificationPreferencesMock,
   updateNotificationPreference: updateNotificationPreferenceMock,
+  getUnreadNotificationCount: getUnreadNotificationCountMock,
+  archiveNotification: archiveNotificationMock,
+  bulkArchiveNotifications: bulkArchiveNotificationsMock,
+}));
+
+vi.mock("@/lib/notifications/notification-realtime", () => ({
+  connectNotificationRealtime: () => () => undefined,
 }));
 
 import NotificationsPage from "@/app/(protected)/notifications/page";
@@ -38,7 +56,12 @@ import NotificationPreferencesPage from "@/app/(protected)/notifications/prefere
 
 describe("Notification pages", () => {
   it("shows empty and loading states for notifications inbox", async () => {
-    listNotificationsMock.mockResolvedValueOnce([]);
+    listNotificationsMock.mockResolvedValueOnce({
+      count: 0,
+      next: null,
+      previous: null,
+      results: [],
+    });
 
     render(<NotificationsPage />);
 
@@ -47,26 +70,31 @@ describe("Notification pages", () => {
   });
 
   it("shows success info after bulk mark as read", async () => {
-    listNotificationsMock.mockResolvedValueOnce([
-      {
-        id: "1",
-        title: "Titel",
-        body: "Body",
-        status: "unread",
-        metadata: {},
-        read_at: null,
-        published_at: new Date().toISOString(),
-        notification_type: {
-          id: "nt-1",
-          key: "build",
-          title: "Build",
-          description: "",
-          default_channels: ["in_app"],
-          allow_user_opt_out: true,
-          is_active: true,
+    listNotificationsMock.mockResolvedValueOnce({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [
+        {
+          id: "1",
+          title: "Titel",
+          body: "Body",
+          status: "unread",
+          metadata: {},
+          read_at: null,
+          published_at: new Date().toISOString(),
+          notification_type: {
+            id: "nt-1",
+            key: "build",
+            title: "Build",
+            description: "",
+            default_channels: ["in_app"],
+            allow_user_opt_out: true,
+            is_active: true,
+          },
         },
-      },
-    ]);
+      ],
+    });
     bulkMarkNotificationsAsReadMock.mockResolvedValue({ updated: 1 });
 
     render(<NotificationsPage />);
@@ -78,27 +106,37 @@ describe("Notification pages", () => {
   });
 
   it("renders accessible preferences table and saves toggle", async () => {
-    listNotificationPreferencesMock.mockResolvedValueOnce([]);
-    listNotificationsMock.mockResolvedValueOnce([
-      {
-        id: "2",
-        title: "Digest",
-        body: "Body",
-        status: "unread",
-        metadata: {},
-        read_at: null,
-        published_at: new Date().toISOString(),
-        notification_type: {
-          id: "nt-2",
-          key: "digest",
-          title: "Digest Meldung",
-          description: "Beschreibung",
-          default_channels: ["in_app"],
-          allow_user_opt_out: true,
-          is_active: true,
+    listNotificationPreferencesMock.mockResolvedValueOnce({
+      count: 0,
+      next: null,
+      previous: null,
+      results: [],
+    });
+    listNotificationsMock.mockResolvedValueOnce({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [
+        {
+          id: "2",
+          title: "Digest",
+          body: "Body",
+          status: "unread",
+          metadata: {},
+          read_at: null,
+          published_at: new Date().toISOString(),
+          notification_type: {
+            id: "nt-2",
+            key: "digest",
+            title: "Digest Meldung",
+            description: "Beschreibung",
+            default_channels: ["in_app"],
+            allow_user_opt_out: true,
+            is_active: true,
+          },
         },
-      },
-    ]);
+      ],
+    });
     updateNotificationPreferenceMock.mockResolvedValue({
       id: "pref-1",
       channel: "email",

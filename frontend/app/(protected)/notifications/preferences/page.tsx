@@ -12,11 +12,17 @@ import {
 } from "@/lib/notifications/notification-api";
 import type { NotificationPreference, NotificationTypeSummary } from "@/lib/notifications/notification-types";
 
-const SUPPORTED_CHANNELS: Array<"in_app" | "email"> = ["in_app", "email"];
+const SUPPORTED_CHANNELS: Array<"in_app" | "email" | "realtime" | "digest"> = ["in_app", "email", "realtime", "digest"];
 
-function channelLabel(channel: "in_app" | "email"): string {
+function channelLabel(channel: "in_app" | "email" | "realtime" | "digest"): string {
   if (channel === "in_app") {
     return "In-App";
+  }
+  if (channel === "realtime") {
+    return "Realtime";
+  }
+  if (channel === "digest") {
+    return "Digest";
   }
   return "Mail";
 }
@@ -38,15 +44,15 @@ export default function NotificationPreferencesPage() {
     setError(null);
     try {
       const [loadedPreferences, loadedNotifications] = await Promise.all([
-        listNotificationPreferences(auth.tenantSlug),
-        listNotifications(auth.tenantSlug, true),
+          listNotificationPreferences(auth.tenantSlug, 1, 200),
+          listNotifications(auth.tenantSlug, true, 1, 200),
       ]);
-      setPreferences(loadedPreferences);
+      setPreferences(loadedPreferences.results);
       const typeMap = new Map<string, NotificationTypeSummary>();
-      for (const preference of loadedPreferences) {
+      for (const preference of loadedPreferences.results) {
         typeMap.set(preference.notification_type.key, preference.notification_type);
       }
-      for (const notification of loadedNotifications) {
+      for (const notification of loadedNotifications.results) {
         typeMap.set(notification.notification_type.key, notification.notification_type);
       }
       setKnownTypes(Array.from(typeMap.values()).sort((a, b) => a.title.localeCompare(b.title)));
@@ -79,7 +85,7 @@ export default function NotificationPreferencesPage() {
     return map;
   }, [preferences]);
 
-  const resolveChecked = (typeKey: string, channel: "in_app" | "email"): boolean => {
+  const resolveChecked = (typeKey: string, channel: "in_app" | "email" | "realtime" | "digest"): boolean => {
     const existing = preferenceMap.get(`${typeKey}:${channel}`);
     if (existing) {
       return existing.is_subscribed;
@@ -91,7 +97,11 @@ export default function NotificationPreferencesPage() {
     return type.default_channels.includes(channel);
   };
 
-  const onToggle = async (typeKey: string, channel: "in_app" | "email", nextValue: boolean) => {
+  const onToggle = async (
+    typeKey: string,
+    channel: "in_app" | "email" | "realtime" | "digest",
+    nextValue: boolean,
+  ) => {
     if (auth.status !== "authenticated") {
       return;
     }
@@ -155,6 +165,8 @@ export default function NotificationPreferencesPage() {
                   <th scope="col" className="px-3 py-2 text-left font-medium">Schluessel</th>
                   <th scope="col" className="px-3 py-2 text-left font-medium">In-App</th>
                   <th scope="col" className="px-3 py-2 text-left font-medium">Mail</th>
+                  <th scope="col" className="px-3 py-2 text-left font-medium">Realtime</th>
+                  <th scope="col" className="px-3 py-2 text-left font-medium">Digest</th>
                 </tr>
               </thead>
               <tbody>

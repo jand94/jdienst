@@ -35,3 +35,20 @@ def test_notification_health_snapshot_command_prints_json():
 
     assert "delivery" in payload
     assert "digest" in payload
+
+
+@pytest.mark.django_db
+def test_notification_digest_commands_run(user, tenant):
+    stdout = StringIO()
+
+    call_command(
+        "notification_seed_fixture",
+        tenant_slug=tenant.slug,
+        user_email=user.email,
+    )
+    call_command("notification_digest_build", stdout=stdout)
+    call_command("notification_digest_dispatch", limit=25, stdout=stdout)
+
+    output = stdout.getvalue()
+    assert "digests_created=" in output
+    assert "digests_processed=" in output

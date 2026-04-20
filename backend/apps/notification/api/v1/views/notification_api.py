@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import mixins, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -15,31 +16,51 @@ from apps.common.api.v1.serializers import PlatformHealthQuerySerializer
 from apps.common.models import TenantMembership
 from apps.notification.api.v1.permissions import IsNotificationOperator, IsStaffNotificationWriter
 from apps.notification.api.v1.schema import (
+    notification_archive_schema,
+    notification_bulk_archive_schema,
     notification_bulk_mark_read_schema,
     notification_mark_read_schema,
     notification_ops_snapshot_schema,
+    notification_unread_count_schema,
     notification_preference_viewset_schema,
     notification_viewset_schema,
 )
 from apps.notification.api.v1.serializers import (
+    NotificationBulkArchiveSerializer,
     NotificationBulkMarkReadSerializer,
     NotificationCreateSerializer,
     NotificationPreferenceReadSerializer,
     NotificationPreferenceUpdateSerializer,
     NotificationReadSerializer,
+    NotificationUnreadCountSerializer,
 )
 from apps.notification.api.v1.services import (
+    archive_notification,
+    archive_notifications_bulk,
+    collect_notification_health_snapshot,
     create_notification,
     list_notifications_for_user,
     list_user_preferences,
     mark_notification_as_read,
     mark_notifications_as_read_bulk,
     set_user_preference,
-    collect_notification_health_snapshot,
+    unread_notification_count,
 )
 from apps.notification.models import Notification, NotificationType, UserNotificationPreference
 
 User = get_user_model()
+
+
+class NotificationPagination(PageNumberPagination):
+    page_size = 20
+    max_page_size = 100
+    page_size_query_param = "page_size"
+
+
+class NotificationPreferencePagination(PageNumberPagination):
+    page_size = 50
+    max_page_size = 200
+    page_size_query_param = "page_size"
 
 
 @notification_viewset_schema
@@ -47,6 +68,7 @@ class NotificationViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, Generi
     queryset = Notification.objects.none()
     serializer_class = NotificationReadSerializer
     throttle_classes = [ScopedRateThrottle]
+    pagination_class = NotificationPagination
 
     def get_permissions(self):
         if self.action == "create":
@@ -60,6 +82,8 @@ class NotificationViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, Generi
             self.throttle_scope = "notification_mark_read"
         elif self.action == "bulk_mark_read":
             self.throttle_scope = "notification_bulk_mark_read"
+        elif self.action in {"archive", "bulk_archive"}:
+            self.throttle_scope = "notification_archive"
         else:
             self.throttle_scope = None
         return super().get_throttles()
@@ -139,6 +163,54 @@ class NotificationViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, Generi
         )
         return Response({"updated": count}, status=status.HTTP_200_OK)
 
+    @notification_archive_schema
+    @action(detail=True, methods=["post"], url_path="archive")
+    def archive(self, request, pk=None):
+        tenant = require_tenant(request)
+        ensure_user_in_tenant(user=request.user, tenant=tenant)
+        notification = get_object_or_404(Notification.objects.select_related("notification_type"), pk=pk)
+        request_id, trace_id = extract_audit_correlation_ids(request)
+        updated = archive_notification(
+            tenant=tenant,
+            actor=request.user,
+            notification=notification,
+            request_id=request_id,
+            trace_id=trace_id,
+        )
+        return Response(NotificationReadSerializer(updated).data, status=status.HTTP_200_OK)
+
+    @notification_bulk_archive_schema
+    @action(detail=False, methods=["post"], url_path="bulk-archive")
+    def bulk_archive(self, request):
+        tenant = require_tenant(request)
+        ensure_user_in_tenant(user=request.user, tenant=tenant)
+        serializer = NotificationBulkArchiveSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        request_id, trace_id = extract_audit_correlation_ids(request)
+        count = archive_notifications_bulk(
+            tenant=tenant,
+            actor=request.user,
+            notification_ids=[str(item) for item in serializer.validated_data["notification_ids"]],
+            request_id=request_id,
+            trace_id=trace_id,
+        )
+        return Response({"updated": count}, status=status.HTTP_200_OK)
+
+    @notification_unread_count_schema
+    @action(detail=False, methods=["get"], url_path="unread-count")
+    def unread_count(self, request):
+        tenant = require_tenant(request)
+        ensure_user_in_tenant(user=request.user, tenant=tenant)
+        payload = NotificationUnreadCountSerializer(
+            {
+                "unread_count": unread_notification_count(
+                    tenant=tenant,
+                    user=request.user,
+                )
+            }
+        ).data
+        return Response(payload, status=status.HTTP_200_OK)
+
 
 @notification_preference_viewset_schema
 class NotificationPreferenceViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSet):
@@ -146,6 +218,7 @@ class NotificationPreferenceViewSet(mixins.ListModelMixin, mixins.CreateModelMix
     serializer_class = NotificationPreferenceReadSerializer
     permission_classes = [IsAuthenticated]
     throttle_classes = [ScopedRateThrottle]
+    pagination_class = NotificationPreferencePagination
 
     def get_throttles(self):
         self.throttle_scope = "notification_preference_update" if self.action in {"create"} else None

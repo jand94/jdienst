@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from apps.common.models import AuditEvent
 from apps.common.tests.factories import TenantMembershipFactory, TenantFactory, UserFactory
+from apps.notification.models import Notification, NotificationType
 
 
 @pytest.mark.django_db
@@ -107,6 +108,12 @@ def test_patch_me_updates_profile_and_creates_audit_event(api_client):
     assert "permissions" in response.data
     assert "feature_flags" in response.data
     assert response.data["current_tenant_role"] == "member"
+    assert NotificationType.objects.filter(key="accounts-profile-updated").exists()
+    assert Notification.objects.filter(
+        tenant=tenant,
+        recipient=user,
+        notification_type__key="accounts-profile-updated",
+    ).exists()
 
 
 @pytest.mark.django_db
@@ -197,6 +204,12 @@ def test_deactivate_me_deactivates_user_and_writes_audit_event(api_client):
         target_id=str(user.pk),
         actor=user,
         metadata__source="api",
+    ).exists()
+    assert NotificationType.objects.filter(key="accounts-user-deactivated").exists()
+    assert Notification.objects.filter(
+        tenant=tenant,
+        recipient=user,
+        notification_type__key="accounts-user-deactivated",
     ).exists()
 
 

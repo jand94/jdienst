@@ -1,8 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-const { listNotificationsMock } = vi.hoisted(() => ({
-  listNotificationsMock: vi.fn(),
+const { getUnreadNotificationCountMock } = vi.hoisted(() => ({
+  getUnreadNotificationCountMock: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -21,23 +21,16 @@ vi.mock("@/hooks/use-auth", () => ({
 }));
 
 vi.mock("@/lib/notifications/notification-api", () => ({
-  listNotifications: listNotificationsMock,
+  getUnreadNotificationCount: getUnreadNotificationCountMock,
 }));
 
 import Sidebar from "@/components/layout/Sidebar";
 
 describe("Sidebar notification badge", () => {
   it("shows unread badge when unread notifications exist", async () => {
-    listNotificationsMock.mockResolvedValue([
-      {
-        id: "n-1",
-        status: "unread",
-      },
-      {
-        id: "n-2",
-        status: "read",
-      },
-    ]);
+    getUnreadNotificationCountMock.mockResolvedValue({
+      unread_count: 1,
+    });
 
     render(<Sidebar />);
 

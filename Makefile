@@ -5,7 +5,7 @@ BACKEND_SERVICE := backend
 FRONTEND_SERVICE := frontend
 ENV_FILE := .env
 
-.PHONY: help init-env bootstrap up up-d down build logs logs-frontend logs-fe logs-backend logs-be ps shell be-shell fe-shell restart-frontend restart-fe restart-backend restart-be recreate-frontend recreate-fe recreate-backend recreate-be makemigrations migrate create-superuser createsuperuser superuser test test-be schema schema-validate worker beat notification-health notification-dispatch notification-seed-fixture validate-agents-manifest validate-backend-conventions validate-text-encoding ci
+.PHONY: help init-env bootstrap up up-d down build logs logs-frontend logs-fe logs-backend logs-be ps shell be-shell fe-shell restart-frontend restart-fe restart-backend restart-be recreate-frontend recreate-fe recreate-backend recreate-be makemigrations migrate create-superuser createsuperuser superuser test test-be schema schema-validate worker beat notification-health notification-dispatch notification-digest-build notification-digest-dispatch notification-pipeline-recover notification-seed-fixture validate-agents-manifest validate-backend-conventions validate-text-encoding ci
 
 help: ## Zeigt verfügbare Make-Targets
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z0-9_-]+:.*## / {printf "  %-18s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -111,6 +111,18 @@ notification-health: ## Zeigt Notification-Health-/SLO-Snapshot (JSON)
 
 notification-dispatch: ## Startet sofortige Verarbeitung faelliger Notification-Deliveries
 	$(COMPOSE) exec $(BACKEND_SERVICE) python manage.py notification_dispatch_pending --limit 200
+
+notification-digest-build: ## Baut ausstehenden Notification-Digest-Backlog
+	$(COMPOSE) exec $(BACKEND_SERVICE) python manage.py notification_digest_build
+
+notification-digest-dispatch: ## Versendet faellige Notification-Digests sofort
+	$(COMPOSE) exec $(BACKEND_SERVICE) python manage.py notification_digest_dispatch --limit 50
+
+notification-pipeline-recover: ## Fuehrt Recovery-Reihenfolge aus (Dispatch -> Digest Build/Dispatch -> Health)
+	$(MAKE) notification-dispatch
+	$(MAKE) notification-digest-build
+	$(MAKE) notification-digest-dispatch
+	$(MAKE) notification-health
 
 notification-seed-fixture: ## Seedet Notification-Diagnosedaten (TENANT_SLUG, USER_EMAIL erforderlich)
 	@if [ -z "$(TENANT_SLUG)" ] || [ -z "$(USER_EMAIL)" ]; then \

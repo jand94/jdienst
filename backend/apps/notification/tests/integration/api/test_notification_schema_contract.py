@@ -9,19 +9,28 @@ def test_notification_schema_tags_paths_and_error_contract():
 
     notification_list_path = "/api/notification/v1/notifications/"
     notification_mark_read_path = "/api/notification/v1/notifications/{id}/mark-read/"
+    notification_archive_path = "/api/notification/v1/notifications/{id}/archive/"
     notification_bulk_mark_read_path = "/api/notification/v1/notifications/bulk-mark-read/"
+    notification_bulk_archive_path = "/api/notification/v1/notifications/bulk-archive/"
+    unread_count_path = "/api/notification/v1/notifications/unread-count/"
     preference_path = "/api/notification/v1/preferences/"
     ops_health_snapshot_path = "/api/notification/v1/ops/health-snapshot/"
 
     assert notification_list_path in paths
     assert notification_mark_read_path in paths
+    assert notification_archive_path in paths
     assert notification_bulk_mark_read_path in paths
+    assert notification_bulk_archive_path in paths
+    assert unread_count_path in paths
     assert preference_path in paths
     assert ops_health_snapshot_path in paths
 
     assert paths[notification_list_path]["get"]["tags"] == ["Notification - Inbox"]
     assert paths[notification_mark_read_path]["post"]["tags"] == ["Notification - Inbox - State"]
+    assert paths[notification_archive_path]["post"]["tags"] == ["Notification - Inbox - State"]
     assert paths[notification_bulk_mark_read_path]["post"]["tags"] == ["Notification - Inbox - State"]
+    assert paths[notification_bulk_archive_path]["post"]["tags"] == ["Notification - Inbox - State"]
+    assert paths[unread_count_path]["get"]["tags"] == ["Notification - Inbox"]
     assert paths[preference_path]["get"]["tags"] == ["Notification - Preferences"]
     assert paths[ops_health_snapshot_path]["get"]["tags"] == ["Notification - Operations - Health"]
 
@@ -36,3 +45,13 @@ def test_notification_schema_tags_paths_and_error_contract():
 
     mark_read_responses = paths[notification_mark_read_path]["post"]["responses"]
     assert mark_read_responses["404"]["content"]["application/json"]["schema"]["$ref"].endswith("/ApiErrorResponse")
+
+    list_schema_ref = paths[notification_list_path]["get"]["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+    list_schema = schema["components"]["schemas"][list_schema_ref.rsplit("/", maxsplit=1)[-1]]
+    assert "results" in list_schema["properties"]
+
+    preference_list_schema_ref = paths[preference_path]["get"]["responses"]["200"]["content"]["application/json"]["schema"][
+        "$ref"
+    ]
+    preference_list_schema = schema["components"]["schemas"][preference_list_schema_ref.rsplit("/", maxsplit=1)[-1]]
+    assert "results" in preference_list_schema["properties"]

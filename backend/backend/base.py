@@ -210,6 +210,7 @@ REST_FRAMEWORK = {
         "notification_create": os.getenv("NOTIFICATION_CREATE_RATE", "120/hour"),
         "notification_mark_read": os.getenv("NOTIFICATION_MARK_READ_RATE", "240/hour"),
         "notification_bulk_mark_read": os.getenv("NOTIFICATION_BULK_MARK_READ_RATE", "60/hour"),
+        "notification_archive": os.getenv("NOTIFICATION_ARCHIVE_RATE", "120/hour"),
         "notification_preference_update": os.getenv("NOTIFICATION_PREFERENCE_UPDATE_RATE", "120/hour"),
         "notification_ops_snapshot": os.getenv("NOTIFICATION_OPS_SNAPSHOT_RATE", "120/hour"),
     },

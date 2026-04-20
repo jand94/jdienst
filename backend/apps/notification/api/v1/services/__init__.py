@@ -3,9 +3,19 @@ from .notification_digest_service import build_pending_digests, dispatch_pending
 from .notification_health_service import collect_notification_health_snapshot
 from .notification_observability_service import log_pipeline_event, sanitize_for_log
 from .notification_preference_service import list_user_preferences, resolve_channel_subscription, resolve_effective_channels, set_user_preference
-from .notification_service import create_notification, list_notifications_for_user, mark_notification_as_read, mark_notifications_as_read_bulk
+from .notification_service import (
+    archive_notification,
+    archive_notifications_bulk,
+    create_notification,
+    list_notifications_for_user,
+    mark_notification_as_read,
+    mark_notifications_as_read_bulk,
+    unread_notification_count,
+)
 
 __all__ = [
+    "archive_notification",
+    "archive_notifications_bulk",
     "build_pending_digests",
     "collect_notification_health_snapshot",
     "create_notification",
@@ -20,4 +30,5 @@ __all__ = [
     "resolve_effective_channels",
     "sanitize_for_log",
     "set_user_preference",
+    "unread_notification_count",
 ]

@@ -30,8 +30,9 @@ def test_notification_list_returns_user_notifications(api_client, user, tenant, 
     )
 
     assert response.status_code == status.HTTP_200_OK
-    assert len(response.data) == 1
-    assert response.data[0]["title"] == "Pipeline Fehler"
+    assert response.data["count"] == 1
+    assert len(response.data["results"]) == 1
+    assert response.data["results"][0]["title"] == "Pipeline Fehler"
 
 
 @pytest.mark.django_db
@@ -125,6 +126,39 @@ def test_user_can_mark_notification_as_read(api_client, user, tenant, tenant_mem
 
 
 @pytest.mark.django_db
+def test_user_can_archive_notification_and_get_unread_count(api_client, user, tenant, tenant_membership):
+    notification_type = NotificationType.objects.create(
+        key="archive-ready",
+        title="Archive Ready",
+        default_channels=[UserNotificationPreference.CHANNEL_IN_APP],
+    )
+    notification = Notification.objects.create(
+        tenant=tenant,
+        notification_type=notification_type,
+        recipient=user,
+        title="Archive me",
+        body="Archive me body",
+        status=Notification.STATUS_UNREAD,
+    )
+    api_client.force_authenticate(user=user)
+
+    archive_response = api_client.post(
+        f"/api/notification/v1/notifications/{notification.pk}/archive/",
+        HTTP_X_TENANT_SLUG=tenant.slug,
+    )
+    count_response = api_client.get(
+        "/api/notification/v1/notifications/unread-count/",
+        HTTP_X_TENANT_SLUG=tenant.slug,
+    )
+
+    assert archive_response.status_code == status.HTTP_200_OK
+    assert count_response.status_code == status.HTTP_200_OK
+    assert count_response.data["unread_count"] == 0
+    notification.refresh_from_db()
+    assert notification.status == Notification.STATUS_ARCHIVED
+
+
+@pytest.mark.django_db
 def test_user_can_subscribe_or_unsubscribe_preference(api_client, user, tenant, tenant_membership):
     NotificationType.objects.create(
         key="digest-only",
@@ -146,6 +180,13 @@ def test_user_can_subscribe_or_unsubscribe_preference(api_client, user, tenant, 
 
     assert response.status_code == status.HTTP_201_CREATED
     assert response.data["is_subscribed"] is False
+
+    list_response = api_client.get(
+        "/api/notification/v1/preferences/",
+        HTTP_X_TENANT_SLUG=tenant.slug,
+    )
+    assert list_response.status_code == status.HTTP_200_OK
+    assert "results" in list_response.data
 
 
 @pytest.mark.django_db

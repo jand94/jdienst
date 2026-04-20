@@ -19,10 +19,24 @@ export type NotificationItem = {
   read_at: string | null;
 };
 
+export type NotificationPage = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: NotificationItem[];
+};
+
 export type NotificationPreference = {
   id: string;
   notification_type: NotificationTypeSummary;
   channel: "in_app" | "email" | "realtime" | "digest";
   is_subscribed: boolean;
   updated_at: string;
+};
+
+export type NotificationPreferencePage = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: NotificationPreference[];
 };

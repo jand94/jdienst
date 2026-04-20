@@ -44,6 +44,14 @@ class NotificationBulkMarkReadSerializer(serializers.Serializer):
     notification_ids = serializers.ListField(child=serializers.UUIDField(), allow_empty=False)
 
 
+class NotificationBulkArchiveSerializer(serializers.Serializer):
+    notification_ids = serializers.ListField(child=serializers.UUIDField(), allow_empty=False)
+
+
+class NotificationUnreadCountSerializer(serializers.Serializer):
+    unread_count = serializers.IntegerField(min_value=0)
+
+
 class NotificationPreferenceReadSerializer(serializers.ModelSerializer):
     notification_type = NotificationTypeSerializer(read_only=True)
 

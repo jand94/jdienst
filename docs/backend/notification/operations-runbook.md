@@ -18,10 +18,23 @@ make notification-health
 make notification-dispatch
 ```
 
-3. Falls keine reproduzierbaren Daten vorhanden sind, Diagnosedaten seeden:
+3. Wenn Digest-Backlog steigt (`digest.pending_total`), Build/Dispatch triggern:
+
+```bash
+make notification-digest-build
+make notification-digest-dispatch
+```
+
+4. Falls keine reproduzierbaren Daten vorhanden sind, Diagnosedaten seeden:
 
 ```bash
 make notification-seed-fixture TENANT_SLUG=<tenant> USER_EMAIL=<user-email>
+```
+
+5. Komplettes Recovery-Playbook als Sammelkommando:
+
+```bash
+make notification-pipeline-recover
 ```
 
 ## Interpretation
@@ -43,6 +56,22 @@ make notification-seed-fixture TENANT_SLUG=<tenant> USER_EMAIL=<user-email>
 3. **Ops-Snapshot kritisch (`passed=false`)**:
    - Werte gegen `NOTIFICATION_HEALTH_*` Schwellwerte abgleichen
    - bei dauerhaftem Backlog Worker/Beat-Last und Redis-Verfuegbarkeit pruefen
+
+## Incident-Drills
+
+### Drill A: Delivery-Stau simulieren und aufloesen
+
+1. `make notification-seed-fixture ...`
+2. `make notification-health` (Stau bestaetigen)
+3. `make notification-dispatch`
+4. `make notification-health` (Rueckgang bestaetigen)
+
+### Drill B: Digest-Backlog simulieren und aufloesen
+
+1. `make notification-seed-fixture ...`
+2. `make notification-digest-build`
+3. `make notification-digest-dispatch`
+4. `make notification-health` (Digest pending sollte sinken)
 
 ## Wichtige Endpunkte
 
