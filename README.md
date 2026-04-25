@@ -1,4 +1,4 @@
-# jdienst
+# base
 
 Lokaler Full-Stack-Workspace mit Django-Backend, Next.js-Frontend und PostgreSQL ueber Docker Compose.
 
